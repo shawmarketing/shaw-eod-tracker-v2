@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<title>Shaw EOD Tracker v3.0</title>
+<title>Shaw EOD Tracker v3.1</title>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 <style>
@@ -802,7 +802,25 @@ function switchAdminTab(tab){
   if(tab==='attendance'){adminCalState={year:NOW.getFullYear(),month:NOW.getMonth()};renderAdminAttendance();}
   if(tab==='eod-report')renderAdminEODReport();
   if(tab==='balances')renderAdminBalances();
-  if(tab==='timelog')renderTimeLog();
+  if(tab==='timelog'){
+    const tl=document.getElementById('admin-timelog');
+    if(tl){
+      const fromDef=new Date(NOW);
+      fromDef.setDate(NOW.getDate()-6);
+      tl.innerHTML=`<div class="card">
+        <p class="card-title"><span class="icon icon-purple">&#128337;</span>Login &amp; EOD time log</p>
+        <div style="display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap">
+          <div style="flex:1;min-width:120px"><label style="margin-top:0">From</label><input type="date" id="tl-from" value="${fromDef.toISOString().slice(0,10)}" max="${TODAY}"></div>
+          <div style="flex:1;min-width:120px"><label style="margin-top:0">To</label><input type="date" id="tl-to" value="${TODAY}" max="${TODAY}"></div>
+        </div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <button class="submit-btn" style="background:#4a6cf7;margin-top:0" onclick="renderTimeLogTable()">Generate report</button>
+          <button class="submit-btn" style="background:#166534;margin-top:0" onclick="exportTimeLogCSV()">&#11015; Export CSV</button>
+        </div>
+        <div id="tl-table" style="margin-top:12px"></div>
+      </div>`;
+    }
+  }
   if(tab==='settings')renderSettings();
   if(tab==='email'){document.getElementById('email-date').value=TODAY;document.getElementById('email-output').innerHTML='';}
 }
