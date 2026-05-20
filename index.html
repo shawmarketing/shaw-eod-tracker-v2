@@ -1,0 +1,1771 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
+<title>Shaw EOD Tracker v2.1</title>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f4f6f9;color:#1a1a2e;font-size:15px;min-height:100vh}
+.top-bar{background:#1a1a2e;color:#fff;padding:12px 20px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100}
+.top-bar h1{font-size:15px;font-weight:600}
+.container{max-width:520px;margin:0 auto;padding:16px}
+.card{background:#fff;border-radius:14px;padding:18px;margin-bottom:14px;box-shadow:0 1px 4px rgba(0,0,0,.07)}
+.card-title{font-size:14px;font-weight:600;margin-bottom:14px;color:#1a1a2e;display:flex;align-items:center;gap:8px}
+.icon{width:26px;height:26px;border-radius:7px;display:inline-flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0}
+.icon-blue{background:#e8f0fe}.icon-green{background:#e6f4ea}.icon-orange{background:#fef3e2}.icon-purple{background:#f3e8fd}.icon-red{background:#fce8e6}
+label{display:block;font-size:12px;font-weight:500;color:#666;margin-bottom:4px;margin-top:10px}
+label:first-of-type{margin-top:0}
+input,select,textarea{width:100%;padding:9px 11px;border:1.5px solid #e0e0e0;border-radius:9px;font-size:13px;font-family:inherit;background:#fafafa;color:#1a1a2e;transition:border .2s}
+input:focus,select:focus,textarea:focus{outline:none;border-color:#4a6cf7;background:#fff}
+input[type=number]{-moz-appearance:textfield}
+input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none}
+textarea{resize:vertical;min-height:60px}
+.yn-group{display:flex;gap:8px;margin-top:2px}
+.yn-btn{flex:1;padding:9px;border:1.5px solid #e0e0e0;border-radius:9px;background:#fafafa;font-size:12px;font-weight:500;cursor:pointer;text-align:center;transition:all .2s;color:#666}
+.yn-btn.yes.active{background:#e6f4ea;border-color:#34a853;color:#1e7e34}
+.yn-btn.no.active{background:#fce8e6;border-color:#ea4335;color:#c62828}
+.yn-btn.locked{opacity:.4;cursor:not-allowed;pointer-events:none}
+.yn-btn:hover:not(.active):not(.locked){background:#f0f0f0}
+.project-block{background:#f8f9ff;border:1.5px solid #e8f0fe;border-radius:10px;padding:12px;margin-bottom:10px}
+.project-block-title{font-size:12px;font-weight:600;color:#4a6cf7;margin-bottom:8px}
+.submit-btn{width:100%;padding:13px;background:#1a1a2e;color:#fff;border:none;border-radius:12px;font-size:14px;font-weight:600;cursor:pointer;margin-top:8px;transition:opacity .2s}
+.submit-btn:hover{opacity:.88}
+.back-btn{width:100%;padding:11px;background:transparent;color:#1a1a2e;border:1.5px solid #ddd;border-radius:12px;font-size:13px;font-weight:500;cursor:pointer;margin-top:8px}
+.view{display:none}.view.active{display:block}
+.role-badge{font-size:10px;font-weight:600;padding:2px 8px;border-radius:20px}
+.badge-s{background:#e8f0fe;color:#1a56db}.badge-e{background:#fef3e2;color:#b45309}.badge-b{background:#e6f4ea;color:#166534}
+.person-row{display:flex;align-items:center;justify-content:space-between;padding:9px 0;border-bottom:1px solid #f0f0f0}
+.person-row:last-child{border-bottom:none}
+.person-info{display:flex;align-items:center;gap:10px}
+.avatar{width:32px;height:32px;border-radius:50%;background:#e8f0fe;color:#1a56db;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.del-btn{background:none;border:none;cursor:pointer;color:#ea4335;font-size:15px;padding:3px 5px}
+.summary-box{background:#f8f9ff;border:1.5px solid #e8f0fe;border-radius:10px;padding:12px;margin-top:10px;font-size:11px;font-family:monospace;white-space:pre-wrap;line-height:1.7;max-height:320px;overflow-y:auto}
+.copy-btn{width:100%;padding:10px;background:#4a6cf7;color:#fff;border:none;border-radius:10px;font-size:12px;font-weight:600;cursor:pointer;margin-top:8px}
+.tab-row{display:flex;gap:4px;margin-bottom:12px;flex-wrap:wrap}
+.tab{flex:1;min-width:44px;padding:8px 3px;border:1.5px solid #e0e0e0;border-radius:10px;background:#fff;font-size:10px;font-weight:500;cursor:pointer;text-align:center;color:#666;position:relative}
+.tab.active{background:#1a1a2e;color:#fff;border-color:#1a1a2e}
+.tab .balert{position:absolute;top:-5px;right:-5px;background:#ea4335;color:#fff;border-radius:50%;width:15px;height:15px;font-size:8px;display:flex;align-items:center;justify-content:center;font-weight:700}
+.metric-row{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:10px}
+.metric{background:#f8f9ff;border-radius:10px;padding:10px;text-align:center}
+.metric-val{font-size:18px;font-weight:700}
+.metric-label{font-size:10px;color:#888;margin-top:2px}
+.week-block{background:#f8f9ff;border-radius:10px;padding:10px;margin-bottom:8px}
+.week-title{font-size:11px;font-weight:600;color:#4a6cf7;margin-bottom:6px}
+.stat-row{display:flex;justify-content:space-between;font-size:11px;padding:4px 0;border-bottom:1px solid #eef}
+.stat-row:last-child{border-bottom:none}
+.stat-label{color:#666}.stat-val{font-weight:600}
+.admin-link{font-size:12px;color:#bbb;text-align:center;margin-top:14px;cursor:pointer}
+.error-msg{background:#fce8e6;color:#c62828;border-radius:9px;padding:9px 12px;font-size:12px;margin-bottom:10px;display:none}
+.pw-wrap{position:relative}
+.pw-toggle{position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;font-size:15px;color:#888;padding:0}
+.logout-btn{font-size:11px;background:rgba(255,255,255,.15);border:none;color:#fff;padding:4px 10px;border-radius:8px;cursor:pointer}
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.55);display:flex;align-items:center;justify-content:center;z-index:1000;padding:16px}
+.modal{background:#fff;border-radius:16px;padding:22px;width:100%;max-width:440px;max-height:92vh;overflow-y:auto}
+.modal-title{font-size:15px;font-weight:700;margin-bottom:14px}
+.close-btn{float:right;background:none;border:none;font-size:20px;cursor:pointer;color:#888;margin-top:-4px}
+.report-section{background:#f8f9ff;border-radius:10px;padding:12px;margin-bottom:8px}
+.report-section-title{font-size:11px;font-weight:700;color:#1a56db;margin-bottom:8px;text-transform:uppercase;letter-spacing:.05em}
+.report-kv{display:flex;justify-content:space-between;font-size:11px;padding:4px 0;border-bottom:1px solid #e8f0fe}
+.report-kv:last-child{border-bottom:none}
+.report-kv-label{color:#666}.report-kv-val{font-weight:600}
+.member-card{background:#f8f9ff;border:1.5px solid #e8f0fe;border-radius:10px;padding:10px;margin-bottom:8px}
+.edit-btn{background:none;border:1.5px solid #4a6cf7;color:#4a6cf7;border-radius:8px;font-size:10px;padding:2px 8px;cursor:pointer}
+.tog-sw{width:36px;height:20px;background:#ddd;border-radius:10px;position:relative;cursor:pointer;transition:background .2s;flex-shrink:0}
+.tog-sw.on{background:#34a853}
+.tog-knob{width:16px;height:16px;background:#fff;border-radius:50%;position:absolute;top:2px;left:2px;transition:left .2s}
+.tog-sw.on .tog-knob{left:18px}
+.login-clock{background:linear-gradient(135deg,#1a1a2e,#16213e);border-radius:14px;padding:20px;text-align:center;margin-bottom:12px;color:#fff}
+.clock-time{font-size:34px;font-weight:700;letter-spacing:2px}
+.login-mark-btn{background:#34a853;color:#fff;border:none;border-radius:12px;padding:12px;font-size:15px;font-weight:700;cursor:pointer;width:100%;margin-top:12px}
+.login-mark-btn:disabled{background:#666;cursor:not-allowed;opacity:.6}
+.leave-card{border:1.5px solid #e0e0e0;border-radius:12px;padding:12px;margin-bottom:10px}
+.leave-status{display:inline-block;padding:2px 9px;border-radius:20px;font-size:10px;font-weight:600}
+.ls-pending{background:#fef3e2;color:#b45309}.ls-approved{background:#e6f4ea;color:#166534}.ls-rejected{background:#fce8e6;color:#c62828}.ls-cancelled{background:#f3f4f6;color:#6b7280}
+.info-chip{display:inline-block;padding:2px 7px;border-radius:20px;font-size:9px;font-weight:600;background:#e8f0fe;color:#1a56db;margin-left:5px}
+.streak-badge{display:inline-flex;align-items:center;gap:3px;background:#fef3e2;color:#b45309;border-radius:20px;padding:2px 7px;font-size:9px;font-weight:600;margin-left:5px}
+.cal-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+.cal-nav{background:none;border:1.5px solid #e0e0e0;border-radius:8px;width:30px;height:30px;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center}
+.cal-nav:disabled{opacity:.3;cursor:default}
+.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:2px}
+.cal-day-name{text-align:center;font-size:9px;font-weight:600;color:#888;padding:3px 0}
+.cal-cell{aspect-ratio:1;border-radius:6px;display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:10px;font-weight:500;cursor:default;border:1.5px solid transparent}
+.cal-cell.clickable{cursor:pointer}.cal-cell.clickable:hover{opacity:.8}
+.cal-cell.empty{background:transparent;border-color:transparent}
+.c-present{background:#e6f4ea;color:#166534;border-color:#86efac}
+.c-login-missed{background:#fef3e2;color:#b45309;border-color:#fcd34d}
+.c-eod-missing{background:#fce8e6;color:#c62828;border-color:#fca5a5}
+.c-leave{background:#e8f0fe;color:#1a56db;border-color:#93c5fd}
+.c-halfday{background:#f3e8fd;color:#7c3aed;border-color:#c4b5fd}
+.c-festival{background:#fef9e7;color:#b7770d;border-color:#f7dc6f}
+.c-compoff{background:#e8f8f5;color:#0e6655;border-color:#76d7c4}
+.c-weekend{background:#f3f4f6;color:#9ca3af}
+.c-today{border-color:#4a6cf7!important;box-shadow:0 0 0 2px #4a6cf733}
+.c-future{background:#fafafa;color:#ccc}
+.legend{display:flex;flex-wrap:wrap;gap:5px;margin-top:8px}
+.legend-item{display:flex;align-items:center;gap:3px;font-size:9px;color:#666}
+.legend-dot{width:9px;height:9px;border-radius:2px;flex-shrink:0}
+.loading-screen{position:fixed;inset:0;background:#1a1a2e;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#fff;z-index:9999}
+.spinner{width:36px;height:36px;border:3px solid rgba(255,255,255,.2);border-top-color:#fff;border-radius:50%;animation:spin .8s linear infinite;margin-bottom:14px}
+@keyframes spin{to{transform:rotate(360deg)}}
+/* leave balance cards */
+.balance-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px}
+.balance-card{border-radius:10px;padding:12px;text-align:center}
+.bc-leave{background:#e6f4ea}
+.bc-comp{background:#e8f0fe}
+.bc-festival{background:#fef9e7}
+.balance-val{font-size:22px;font-weight:700}
+.balance-label{font-size:10px;color:#666;margin-top:2px}
+.comp-row{display:flex;justify-content:space-between;align-items:center;font-size:11px;padding:5px 0;border-bottom:1px solid #f0f0f0}
+.comp-row:last-child{border-bottom:none}
+.expiry-badge{font-size:9px;padding:1px 6px;border-radius:10px;background:#fce8e6;color:#c62828}
+.expiry-ok{background:#e6f4ea;color:#166534}
+.txn-row{display:flex;justify-content:space-between;font-size:11px;padding:4px 0;border-bottom:1px solid #f5f5f5}
+.txn-row:last-child{border-bottom:none}
+</style>
+</head>
+<body>
+<div class="loading-screen" id="loading-screen">
+  <div class="spinner"></div>
+  <p style="font-size:13px;opacity:.7">Connecting...</p>
+</div>
+<div class="top-bar">
+  <h1>&#128203; Shaw EOD Tracker</h1>
+  <span id="top-right-area"></span>
+</div>
+<div id="modal-root"></div>
+<div class="container">
+
+<!-- LOGIN -->
+<div class="view active" id="view-login">
+  <div style="text-align:center;margin:20px 0 8px">
+    <img src="https://i.ibb.co/V0S6WWBT/SHAW-Hotel-LOGO-Final-File-01.jpg" alt="Shaw Hotels" style="max-width:260px;width:88%;border-radius:10px;box-shadow:0 2px 12px rgba(0,0,0,.1)">
+  </div>
+  <div class="card">
+    <p class="card-title"><span class="icon icon-blue">&#128274;</span>Sign in</p>
+    <div id="login-error-team" class="error-msg">Incorrect username or password.</div>
+    <label>Username</label>
+    <input type="text" id="team-username" placeholder="Your username" autocomplete="off">
+    <label>Password</label>
+    <div class="pw-wrap">
+      <input type="password" id="team-password" placeholder="Your password" autocomplete="off" onkeydown="if(event.key==='Enter')doTeamLogin()">
+      <button class="pw-toggle" onclick="togglePw('team-password')">&#128065;</button>
+    </div>
+    <button class="submit-btn" style="margin-top:12px" onclick="doTeamLogin()">Sign in</button>
+  </div>
+  <p class="admin-link" onclick="showView('admin-login')">&#128274; Admin login</p>
+</div>
+
+<!-- ADMIN LOGIN -->
+<div class="view" id="view-admin-login">
+  <div class="card" style="margin-top:24px;max-width:340px;margin-left:auto;margin-right:auto">
+    <p class="card-title" style="justify-content:center">&#128274; Admin login</p>
+    <div id="login-error" class="error-msg">Incorrect username or password.</div>
+    <label>Username</label>
+    <input type="text" id="admin-username" autocomplete="off">
+    <label>Password</label>
+    <div class="pw-wrap">
+      <input type="password" id="admin-password" autocomplete="off" onkeydown="if(event.key==='Enter')doAdminLogin()">
+      <button class="pw-toggle" onclick="togglePw('admin-password')">&#128065;</button>
+    </div>
+    <button class="submit-btn" style="margin-top:14px" onclick="doAdminLogin()">&#128275; Login</button>
+    <button class="back-btn" onclick="showView('login')">&#8592; Back</button>
+  </div>
+</div>
+
+<!-- USER DASHBOARD -->
+<div class="view" id="view-user-dash">
+  <div class="tab-row">
+    <button class="tab active" id="utab-home" onclick="switchUserTab('home')">&#127968; Home</button>
+    <button class="tab" id="utab-calendar" onclick="switchUserTab('calendar')">&#128197; Calendar</button>
+    <button class="tab" id="utab-leave" onclick="switchUserTab('leave')">&#9992;&#65039; Leave</button>
+    <button class="tab" id="utab-balance" onclick="switchUserTab('balance')">&#128200; Balance</button>
+  </div>
+  <div id="user-home"></div>
+  <div id="user-calendar" style="display:none"></div>
+  <div id="user-leave" style="display:none"></div>
+  <div id="user-balance" style="display:none"></div>
+</div>
+
+<!-- EOD FORM -->
+<div class="view" id="view-eod"><div id="eod-content"></div></div>
+
+<!-- SUCCESS -->
+<div class="view" id="view-success">
+  <div class="card" style="margin-top:8px">
+    <div style="text-align:center;padding:28px 10px">
+      <div style="font-size:48px;margin-bottom:10px">&#9989;</div>
+      <p style="font-size:17px;font-weight:700;margin-bottom:5px">EOD Submitted!</p>
+      <p style="font-size:12px;color:#666">Saved to cloud successfully.</p>
+      <button class="submit-btn" style="margin-top:18px;max-width:200px;margin-left:auto;margin-right:auto" onclick="goUserDash('home')">Back to dashboard</button>
+    </div>
+  </div>
+</div>
+
+<!-- ADMIN -->
+<div class="view" id="view-admin">
+  <div class="tab-row">
+    <button class="tab active" id="tab-today" onclick="switchAdminTab('today')">Today</button>
+    <button class="tab" id="tab-leave-admin" onclick="switchAdminTab('leave-admin')">Leave<span class="balert" id="leave-badge" style="display:none">0</span></button>
+    <button class="tab" id="tab-attendance" onclick="switchAdminTab('attendance')">Attend.</button>
+    <button class="tab" id="tab-eod-report" onclick="switchAdminTab('eod-report')">EOD</button>
+    <button class="tab" id="tab-timelog" onclick="switchAdminTab('timelog')">Time Log</button>
+    <button class="tab" id="tab-balances" onclick="switchAdminTab('balances')">Balances</button>
+    <button class="tab" id="tab-settings" onclick="switchAdminTab('settings')">Settings</button>
+    <button class="tab" id="tab-email" onclick="switchAdminTab('email')">Email</button>
+  </div>
+  <div id="admin-today"></div>
+  <div id="admin-leave-admin" style="display:none"></div>
+  <div id="admin-attendance" style="display:none"></div>
+  <div id="admin-eod-report" style="display:none"></div>
+  <div id="admin-timelog" style="display:none"></div>
+  <div id="admin-balances" style="display:none"></div>
+  <div id="admin-settings" style="display:none"></div>
+  <div id="admin-email" style="display:none">
+    <div class="card">
+      <p class="card-title"><span class="icon icon-orange">&#128231;</span>EOD email summary</p>
+      <label>Date</label>
+      <input type="date" id="email-date" style="margin-bottom:10px">
+      <button class="submit-btn" onclick="generateEmail()" style="background:#4a6cf7">Generate summary</button>
+      <div id="email-output"></div>
+    </div>
+  </div>
+</div>
+
+</div>
+<script>
+firebase.initializeApp({
+  apiKey:"AIzaSyCdnLPqnvocKHymkFQ5JVxrGkXNf5v2iC4",
+  authDomain:"eod-tracker-3414a.firebaseapp.com",
+  databaseURL:"https://eod-tracker-3414a-default-rtdb.firebaseio.com",
+  projectId:"eod-tracker-3414a",
+  storageBucket:"eod-tracker-3414a.firebasestorage.app",
+  messagingSenderId:"682826889686",
+  appId:"1:682826889686:web:40bb846c146cbbd02fcc77"
+});
+const db=firebase.database();
+
+// ── STATE ─────────────────────────────────────────────────────
+const ADMIN_USER='admin',ADMIN_PASS='Shaw@786#';
+const LOGIN_START=9*60,LOGIN_END=9*60+10;
+const MONTHS=['January','February','March','April','May','June','July','August','September','October','November','December'];
+const NOW=new Date(),TODAY=NOW.toISOString().slice(0,10);
+
+let S={members:[],projects:[],emails:[],submissions:{},logins:{},leaves:[],compoffs:[],leaveTransactions:[]};
+let currentUser=null,clockTimer=null;
+let userCalState={year:NOW.getFullYear(),month:NOW.getMonth()};
+let adminCalState={year:NOW.getFullYear(),month:NOW.getMonth()};
+let adminAttPerson='',eodRepPerson='',eodRepTab='daily';
+
+// ── FIREBASE ──────────────────────────────────────────────────
+async function loadAll(){
+  try{
+    const snap=await db.ref('/').once('value');
+    const d=snap.val()||{};
+    S.members=d.members?Object.values(d.members):[];
+    S.projects=d.projects?Object.values(d.projects):[];
+    S.emails=d.emails?Object.values(d.emails):[];
+    S.submissions=d.submissions||{};
+    S.logins=d.logins||{};
+    S.leaves=d.leaves?Object.values(d.leaves):[];
+    S.compoffs=d.compoffs?Object.values(d.compoffs):[];
+    S.leaveTransactions=d.leaveTransactions?Object.values(d.leaveTransactions):[];
+    document.getElementById('loading-screen').style.display='none';
+  }catch(err){
+    document.getElementById('loading-screen').innerHTML=`<div style="text-align:center;padding:20px;max-width:300px">
+      <div style="font-size:36px;margin-bottom:10px">&#9888;&#65039;</div>
+      <p style="font-size:14px;font-weight:600;margin-bottom:6px">Connection failed</p>
+      <p style="font-size:11px;opacity:.7;margin-bottom:14px">${err.message}</p>
+      <button onclick="location.reload()" style="background:#34a853;color:#fff;border:none;border-radius:10px;padding:10px 20px;font-size:13px;font-weight:600;cursor:pointer">Try again</button>
+    </div>`;
+  }
+}
+
+function fbSet(p,v){return db.ref(p).set(v);}
+async function saveMembers(){const o={};S.members.forEach((m,i)=>o[i]=m);await fbSet('members',o);}
+async function saveProjects(){const o={};S.projects.forEach((p,i)=>o[i]=p);await fbSet('projects',o);}
+async function saveEmails(){const o={};S.emails.forEach((e,i)=>o[i]=e);await fbSet('emails',o);}
+async function saveLeaves(){const o={};S.leaves.forEach((l,i)=>o[i]=l);await fbSet('leaves',o);}
+async function saveCompOffs(){const o={};S.compoffs.forEach((c,i)=>o[i]=c);await fbSet('compoffs',o);}
+async function saveTransactions(){const o={};S.leaveTransactions.forEach((t,i)=>o[i]=t);await fbSet('leaveTransactions',o);}
+async function saveLogin(ds,name,data){await fbSet(`logins/${ds}/${sk(name)}`,data);S.logins[ds]=S.logins[ds]||{};S.logins[ds][name]=data;}
+async function saveSubmission(ds,name,data){await fbSet(`submissions/${ds}/${sk(name)}`,data);S.submissions[ds]=S.submissions[ds]||{};S.submissions[ds][name]=data;}
+
+db.ref('leaves').on('value',snap=>{S.leaves=snap.val()?Object.values(snap.val()):[];updateLeaveBadge();const el=document.getElementById('admin-leave-admin');if(el&&el.style.display!=='none')renderAdminLeave();});
+db.ref(`submissions/${TODAY}`).on('value',snap=>{S.submissions[TODAY]=snap.val()||{};const el=document.getElementById('admin-today');if(el&&el.style.display!=='none'&&document.getElementById('view-admin').classList.contains('active'))renderToday();});
+db.ref(`logins/${TODAY}`).on('value',snap=>{S.logins[TODAY]=snap.val()||{};});
+
+// ── HELPERS ───────────────────────────────────────────────────
+function isWeekend(ds){const d=new Date(ds);return d.getDay()===0||d.getDay()===6;}
+function isWeekday(ds){return !isWeekend(ds);}
+function isFuture(ds){return ds>TODAY;}
+function isToday(ds){return ds===TODAY;}
+function sk(n){return n.replace(/[\.\s]/g,'_');}
+function ini(n){return n.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();}
+function pad2(n){return String(n).padStart(2,'0');}
+function roleBadge(r){if(r==='scheduler')return'<span class="role-badge badge-s">Scheduler</span>';if(r==='editor')return'<span class="role-badge badge-e">Editor</span>';return'<span class="role-badge badge-b">Sched+Editor</span>';}
+function fmt(ds){return new Date(ds).toLocaleDateString('en-IN',{weekday:'long',day:'numeric',month:'long',year:'numeric'});}
+function nowMins(){const n=new Date();return n.getHours()*60+n.getMinutes();}
+function togglePw(id){const i=document.getElementById(id);i.type=i.type==='password'?'text':'password';}
+function getSub(ds,name){return S.submissions[ds]?.[sk(name)]||S.submissions[ds]?.[name];}
+function getLogin(ds,name){return S.logins[ds]?.[sk(name)]||S.logins[ds]?.[name];}
+function getApprovedLeave(name,ds){return S.leaves.find(l=>l.name===name&&l.date===ds&&l.status==='approved');}
+function pendingLeaveCount(){return S.leaves.filter(l=>l.status==='pending').length;}
+function updateLeaveBadge(){const n=pendingLeaveCount();const b=document.getElementById('leave-badge');if(b){b.style.display=n>0?'flex':'none';b.textContent=n;}}
+
+// ── LEAVE BALANCE LOGIC ───────────────────────────────────────
+function getMemberBalance(name){
+  const m=S.members.find(x=>x.name===name);
+  if(!m) return {leave:0,festival:0,comp:0};
+  const openingLeave=parseFloat(m.leaveBalance)||0;
+  const festivalSlots=parseInt(m.festivalSlots)||2;
+
+  // count approved leaves (regular)
+  let leaveUsed=0;
+  S.leaves.filter(l=>l.name===name&&l.status==='approved'&&(l.type==='full'||l.type==='half')).forEach(l=>{
+    // check weekend sandwich rule for this leave
+    const cost=getLeaveActualCost(name,l);
+    leaveUsed+=cost;
+  });
+
+  // comp offs available (not used, not expired)
+  const today=TODAY;
+  const availableComps=S.compoffs.filter(c=>c.name===name&&!c.used&&c.expiryDate>=today);
+  const compBalance=availableComps.length;
+
+  // festival leaves used
+  const festivalUsed=S.leaves.filter(l=>l.name===name&&l.status==='approved'&&l.type==='festival').length;
+  const festivalRemaining=Math.max(0,festivalSlots-festivalUsed);
+
+  // comp offs used first toward leave
+  const compUsedForLeave=S.compoffs.filter(c=>c.name===name&&c.used).length;
+  const leaveAfterComp=Math.max(0,leaveUsed-compUsedForLeave);
+  const remainingLeave=Math.max(0,openingLeave-leaveAfterComp);
+
+  return {leave:remainingLeave,comp:compBalance,festival:festivalRemaining,leaveUsed,compUsedForLeave,openingLeave,festivalUsed,festivalSlots};
+}
+
+function getLeaveActualCost(name,leaveRecord){
+  if(!leaveRecord) return 0;
+  const type=leaveRecord.type;
+  if(type==='festival') return 0;
+  const ds=leaveRecord.date;
+  let cost=type==='half'?0.5:1;
+
+  // Weekend sandwich rule: if leave is on Friday, check if Monday is also leave/absent
+  const d=new Date(ds);
+  const dayOfWeek=d.getDay();
+
+  // Rule 1: Friday + no Monday = add 2 (Sat+Sun)
+  if(dayOfWeek===5){
+    const monday=new Date(d);monday.setDate(d.getDate()+3);
+    const monDs=monday.toISOString().slice(0,10);
+    const monLeave=S.leaves.find(l=>l.name===name&&l.date===monDs&&l.status==='approved');
+    const monSub=getSub(monDs,name);
+    const monLogin=getLogin(monDs,name);
+    if(!monLeave&&!monSub?.submitted&&!monLogin?.time&&monDs<=TODAY){
+      cost+=2; // Saturday + Sunday added
+    }
+  }
+
+  // Rule 2: check if worked less than 3 days that week
+  if(dayOfWeek>=1&&dayOfWeek<=5){
+    const weekStart=new Date(d);weekStart.setDate(d.getDate()-dayOfWeek+1);
+    let workedDays=0;
+    for(let i=0;i<5;i++){
+      const wd=new Date(weekStart);wd.setDate(weekStart.getDate()+i);
+      const wds=wd.toISOString().slice(0,10);
+      if(wds>TODAY) continue;
+      const wLeave=S.leaves.find(l=>l.name===name&&l.date===wds&&l.status==='approved'&&(l.type==='full'));
+      const wSub=getSub(wds,name);
+      const wLogin=getLogin(wds,name);
+      if(!wLeave&&(wSub?.submitted||wLogin?.time)) workedDays++;
+    }
+    if(workedDays<3&&cost<3){
+      // find if sat/sun of this week already counted
+      cost+=2;
+    }
+  }
+
+  return cost;
+}
+
+// ── DAY STATUS ────────────────────────────────────────────────
+function dayStatus(name,ds){
+  if(isFuture(ds)) return 'future';
+  const wknd=isWeekend(ds);
+  const sub=getSub(ds,name);
+  const login=getLogin(ds,name);
+  const leaveRec=getApprovedLeave(name,ds);
+  if(leaveRec){
+    if(leaveRec.type==='festival') return 'festival';
+    if(leaveRec.type==='full') return 'leave';
+    if(leaveRec.type==='half') return 'halfday';
+    if(leaveRec.type==='compoff') return 'compoff';
+  }
+  if(wknd){return(sub?.submitted||login?.time)?'present':'weekend';}
+  if(isToday(ds)){return sub?.submitted?'present':'today-pending';}
+  const member=S.members.find(m=>m.name===name);
+  const flexi=member?.flexi;
+  const hasLogin=!!login?.time;
+  if(!hasLogin&&!sub?.submitted) return flexi?'eod-missing':'login-missed';
+  if(hasLogin&&!sub?.submitted) return 'eod-missing';
+  return 'present';
+}
+
+function getStreak(name){
+  let streak=0;const d=new Date(TODAY);
+  for(let i=0;i<90;i++){
+    if(i>0)d.setDate(d.getDate()-1);
+    const ds=d.toISOString().slice(0,10);
+    if(isWeekend(ds))continue;
+    const st=dayStatus(name,ds);
+    if(st==='present'||st==='leave'||st==='halfday'||st==='festival'||st==='compoff')streak++;
+    else break;
+  }
+  return streak;
+}
+
+// ── MODAL ─────────────────────────────────────────────────────
+function showModal(html){document.getElementById('modal-root').innerHTML=`<div class="modal-overlay" onclick="cmbg(event)"><div class="modal">${html}</div></div>`;}
+function closeModal(){document.getElementById('modal-root').innerHTML='';}
+function cmbg(e){if(e.target.classList.contains('modal-overlay'))closeModal();}
+
+// ── VIEW ──────────────────────────────────────────────────────
+function showView(v){
+  document.querySelectorAll('.view').forEach(el=>el.classList.remove('active'));
+  document.getElementById('view-'+v).classList.add('active');
+  if(v==='login')updateTopBar('none');
+  if(v==='admin'){updateTopBar('admin');switchAdminTab('today');}
+}
+function updateTopBar(mode){
+  document.getElementById('top-right-area').innerHTML=
+    mode==='admin'?`<button class="logout-btn" onclick="adminLogout()">&#128275; Log out</button>`:
+    mode==='user'?`<button class="logout-btn" onclick="userLogout()">&#8592; Log out</button>`:
+    `<span style="font-size:11px;opacity:.6">${NOW.toLocaleDateString('en-IN',{weekday:'short',day:'numeric',month:'short'})}</span>`;
+}
+function userLogout(){clearInterval(clockTimer);clockTimer=null;currentUser=null;showView('login');updateTopBar('none');}
+function adminLogout(){showView('login');updateTopBar('none');}
+function goUserDash(tab){showView('user-dash');switchUserTab(tab||'home');}
+
+// ── AUTH ──────────────────────────────────────────────────────
+function doTeamLogin(){
+  const u=document.getElementById('team-username').value.trim();
+  const p=document.getElementById('team-password').value;
+  const err=document.getElementById('login-error-team');
+  const m=S.members.find(x=>x.username===u&&x.password===p);
+  if(m){currentUser=m;err.style.display='none';userCalState={year:NOW.getFullYear(),month:NOW.getMonth()};updateTopBar('user');showView('user-dash');switchUserTab('home');}
+  else{err.style.display='block';document.getElementById('team-password').value='';}
+}
+function doAdminLogin(){
+  const u=document.getElementById('admin-username').value.trim();
+  const p=document.getElementById('admin-password').value;
+  const err=document.getElementById('login-error');
+  if(u===ADMIN_USER&&p===ADMIN_PASS){err.style.display='none';showView('admin');}
+  else{err.style.display='block';document.getElementById('admin-password').value='';}
+}
+
+// ── USER TABS ─────────────────────────────────────────────────
+function switchUserTab(tab){
+  ['home','calendar','leave','balance'].forEach(t=>{
+    document.getElementById('user-'+t).style.display=t===tab?'':'none';
+    document.getElementById('utab-'+t).classList.toggle('active',t===tab);
+  });
+  if(tab==='home')renderUserHome();
+  if(tab==='calendar')renderUserCalendar();
+  if(tab==='leave')renderUserLeave();
+  if(tab==='balance')renderUserBalance();
+}
+
+// ── USER HOME ─────────────────────────────────────────────────
+function renderUserHome(){
+  const name=currentUser.name;
+  const sub=getSub(TODAY,name);
+  const login=getLogin(TODAY,name);
+  const nm=nowMins();
+  const flexi=currentUser.flexi;
+  const leaveToday=getApprovedLeave(name,TODAY);
+  const streak=getStreak(name);
+  const bal=getMemberBalance(name);
+
+  let loginSection='';
+  if(leaveToday&&leaveToday.type==='full'){
+    loginSection=`<div style="background:#e8f0fe;border-radius:10px;padding:12px;text-align:center;margin-bottom:12px"><div style="font-size:20px">&#127968;</div><div style="font-weight:600;color:#1a56db;margin-top:3px;font-size:13px">On approved leave today</div></div>`;
+  } else if(login?.time){
+    loginSection=`<div style="background:#1e3a2e;border-radius:10px;padding:10px;margin-bottom:10px;font-size:12px;color:#86efac;text-align:center">&#10003; Logged in at <strong>${login.time}</strong>${login.lateApproved?' (late — approved)':login.flexi?' (flexi)':''}</div>`;
+  } else if(!flexi){
+    const before=nm<LOGIN_START,inW=nm>=LOGIN_START&&nm<=LOGIN_END;
+    loginSection=`<div class="login-clock">
+      <div class="clock-time" id="live-clock">${pad2(NOW.getHours())}:${pad2(NOW.getMinutes())}</div>
+      <div style="font-size:11px;opacity:.7;margin-top:3px">Login window: 09:00–09:10</div>
+      ${inW?`<button class="login-mark-btn" onclick="markLogin()">&#128205; Mark my login</button>`:
+        before?`<button class="login-mark-btn" disabled>Opens at 09:00</button>`:
+        `<button class="login-mark-btn" disabled style="background:#c62828">Login window closed</button>
+         <div style="font-size:11px;opacity:.7;margin-top:6px;color:#fca5a5">&#9888; Login missed — apply late login in Leave tab</div>`}
+    </div>`;
+    startClock();
+  } else {
+    loginSection=`<div class="login-clock">
+      <div class="clock-time" id="live-clock">${pad2(NOW.getHours())}:${pad2(NOW.getMinutes())}</div>
+      <div style="font-size:11px;opacity:.7;margin-top:3px">Flexi login</div>
+      <button class="login-mark-btn" onclick="markLogin()">&#128205; Mark my login</button>
+    </div>`;
+    startClock();
+  }
+
+  let eodSection='';
+  if(leaveToday&&leaveToday.type==='full')eodSection='';
+  else if(sub?.submitted)eodSection=`<div style="background:#e6f4ea;border-radius:10px;padding:10px;text-align:center"><span style="font-size:12px;color:#166534;font-weight:600">&#9989; EOD submitted at ${sub.time}</span></div>`;
+  else if(!isWeekend(TODAY))eodSection=`<button class="submit-btn" style="background:#4a6cf7" onclick="startEOD()">&#128221; Fill today's EOD</button>`;
+  else eodSection=`<div style="background:#f3f4f6;border-radius:10px;padding:10px;text-align:center"><span style="font-size:12px;color:#6b7280;font-weight:600">&#127774; Weekend — EOD optional</span><br><button class="back-btn" style="margin-top:6px;max-width:180px;margin-left:auto;margin-right:auto" onclick="startEOD()">Fill anyway</button></div>`;
+
+  // leave notifications
+  const notifs=S.leaves.filter(l=>l.name===name&&l.status!=='pending'&&!l.seen);
+  let notifHtml='';
+  if(notifs.length){
+    notifHtml='<div class="card">';
+    notifs.forEach(l=>{
+      const approved=l.status==='approved';
+      notifHtml+=`<div style="padding:8px 0;border-bottom:1px solid #f0f0f0;font-size:12px">${approved?'&#9989;':'&#10060;'} <strong>${l.date}</strong> (${l.type}) — <strong style="color:${approved?'#166534':'#c62828'}">${l.status}</strong>${l.adminNote?`<div style="font-size:10px;color:#888;margin-top:1px">Note: ${l.adminNote}</div>`:''}<button onclick="markLeaveSeen('${l.id}')" style="font-size:9px;color:#888;background:none;border:none;cursor:pointer;display:block;margin-top:1px">Dismiss</button></div>`;
+    });
+    notifHtml+='</div>';
+  }
+
+  document.getElementById('user-home').innerHTML=`
+    <div class="card">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
+        <div class="avatar" style="width:38px;height:38px;font-size:13px">${ini(name)}</div>
+        <div><div style="font-size:14px;font-weight:700">${name}${streak>=3?`<span class="streak-badge">&#128293; ${streak}</span>`:''}</div>
+        <div>${roleBadge(currentUser.role)}${currentUser.flexi?`<span class="info-chip">Flexi</span>`:''}</div></div>
+      </div>
+      <div class="balance-grid" style="grid-template-columns:1fr 1fr 1fr">
+        <div class="balance-card bc-leave"><div class="balance-val" style="color:#166534">${bal.leave}</div><div class="balance-label">Leave balance</div></div>
+        <div class="balance-card bc-comp"><div class="balance-val" style="color:#1a56db">${bal.comp}</div><div class="balance-label">Comp offs</div></div>
+        <div class="balance-card bc-festival"><div class="balance-val" style="color:#b7770d">${bal.festival}</div><div class="balance-label">Festival slots</div></div>
+      </div>
+      ${loginSection}${eodSection}
+    </div>${notifHtml}`;
+  if(clockTimer)updateClockDisplay();
+}
+
+function startClock(){if(clockTimer)return;clockTimer=setInterval(()=>updateClockDisplay(),30000);}
+function updateClockDisplay(){const el=document.getElementById('live-clock');if(!el)return;const n=new Date();el.textContent=pad2(n.getHours())+':'+pad2(n.getMinutes());}
+async function markLogin(){
+  const name=currentUser.name;
+  if(getLogin(TODAY,name)?.time)return;
+  const n=new Date();
+  await saveLogin(TODAY,name,{time:pad2(n.getHours())+':'+pad2(n.getMinutes()),flexi:!!currentUser.flexi});
+  clearInterval(clockTimer);clockTimer=null;renderUserHome();
+}
+async function markLeaveSeen(id){const idx=S.leaves.findIndex(l=>l.id===id);if(idx>-1){S.leaves[idx].seen=true;await saveLeaves();}renderUserHome();}
+
+// ── USER BALANCE TAB ──────────────────────────────────────────
+function renderUserBalance(){
+  const name=currentUser.name;
+  const bal=getMemberBalance(name);
+  const comps=S.compoffs.filter(c=>c.name===name&&!c.used).sort((a,b)=>a.expiryDate.localeCompare(b.expiryDate));
+  const today=TODAY;
+
+  let h=`<div class="card"><p class="card-title"><span class="icon icon-green">&#128200;</span>My leave balance</p>
+    <div class="balance-grid">
+      <div class="balance-card bc-leave"><div class="balance-val" style="color:#166534;font-size:28px">${bal.leave}</div><div class="balance-label">Available leave days</div></div>
+      <div class="balance-card bc-festival"><div class="balance-val" style="color:#b7770d;font-size:28px">${bal.festival}/${bal.festivalSlots}</div><div class="balance-label">Festival slots left</div></div>
+    </div>
+    <div style="font-size:11px;color:#888;background:#f8f9ff;border-radius:8px;padding:8px;line-height:1.6">
+      Opening balance: <strong>${bal.openingLeave}</strong> days &nbsp;|&nbsp; Used: <strong>${bal.leaveUsed.toFixed(1)}</strong> days &nbsp;|&nbsp; Remaining: <strong>${bal.leave.toFixed(1)}</strong> days
+    </div>
+  </div>`;
+
+  h+=`<div class="card"><p class="card-title"><span class="icon icon-blue">&#127881;</span>Comp offs</p>`;
+  if(!comps.length){h+=`<p style="font-size:12px;color:#888">No comp offs available.</p>`;}
+  else{
+    comps.forEach(c=>{
+      const daysLeft=Math.ceil((new Date(c.expiryDate)-new Date(today))/(1000*60*60*24));
+      const expClass=daysLeft<=7?'expiry-badge':'expiry-badge expiry-ok';
+      h+=`<div class="comp-row"><div><div style="font-size:12px;font-weight:600">Comp off — ${c.dateWorked}</div><div style="font-size:10px;color:#888">${c.note||'Weekend worked'}</div></div>
+        <span class="${expClass}">Exp: ${c.expiryDate} (${daysLeft}d)</span>
+      </div>`;
+    });
+  }
+  h+=`</div>`;
+
+  // transaction history
+  const txns=S.leaves.filter(l=>l.name===name&&(l.status==='approved'||l.status==='cancelled')).sort((a,b)=>b.date.localeCompare(a.date)).slice(0,20);
+  if(txns.length){
+    h+=`<div class="card"><p class="card-title"><span class="icon icon-orange">&#128203;</span>Leave history</p>`;
+    txns.forEach(l=>{
+      const cost=l.type==='festival'?0:l.type==='half'?0.5:1;
+      const cancelled=l.status==='cancelled';
+      h+=`<div class="txn-row">
+        <div><div style="font-size:12px;font-weight:600">${l.date} — ${l.type}</div><div style="font-size:10px;color:#888">${l.reason}</div></div>
+        <span style="font-size:12px;font-weight:600;color:${cancelled?'#34a853':'#c62828'}">${cancelled?'+':'-'}${l.type==='festival'?'0':cost}</span>
+      </div>`;
+    });
+    h+=`</div>`;
+  }
+  document.getElementById('user-balance').innerHTML=h;
+}
+
+// ── USER CALENDAR ─────────────────────────────────────────────
+function renderUserCalendar(){
+  const name=currentUser.name;
+  const yr=userCalState.year,mo=userCalState.month;
+  const first=new Date(yr,mo,1),last=new Date(yr,mo+1,0);
+  let wd=0,pres=0,issues=0,leave=0;
+  for(let d=new Date(first);d<=last&&d<=NOW;d.setDate(d.getDate()+1)){
+    const ds=d.toISOString().slice(0,10);if(isWeekend(ds))continue;
+    wd++;const st=dayStatus(name,ds);
+    if(st==='present')pres++;else if(st==='login-missed'||st==='eod-missing')issues++;
+    else if(st==='leave'||st==='halfday'||st==='festival'||st==='compoff')leave++;
+  }
+  // upcoming approved leaves
+  const upcoming=S.leaves.filter(l=>l.name===name&&l.status==='approved'&&l.date>=TODAY).sort((a,b)=>a.date.localeCompare(b.date)).slice(0,5);
+
+  let h=`<div class="metric-row"><div class="metric"><div class="metric-val" style="color:#34a853">${pres}</div><div class="metric-label">Days worked</div></div><div class="metric"><div class="metric-val" style="color:#ea4335">${issues}</div><div class="metric-label">Issues</div></div><div class="metric"><div class="metric-val" style="color:#1a56db">${leave}</div><div class="metric-label">Leave/Off</div></div></div>`;
+
+  if(upcoming.length){
+    h+=`<div class="card"><p class="card-title" style="font-size:12px"><span class="icon icon-blue">&#128197;</span>Upcoming approved leaves</p>`;
+    upcoming.forEach(l=>{
+      const typeColors={'full':'#1a56db','half':'#7c3aed','festival':'#b7770d','compoff':'#0e6655'};
+      h+=`<div class="person-row">
+        <div style="font-size:12px;font-weight:600">${new Date(l.date).toLocaleDateString('en-IN',{weekday:'short',day:'numeric',month:'short'})}</div>
+        <span style="font-size:11px;font-weight:600;color:${typeColors[l.type]||'#888'}">${l.type}${l.festivalName?' · '+l.festivalName:''}</span>
+      </div>`;
+    });
+    h+=`</div>`;
+  }
+
+  h+=buildCal(yr,mo,name,'user');h+=buildLegend();
+  document.getElementById('user-calendar').innerHTML=h;
+}
+
+// ── USER LEAVE ────────────────────────────────────────────────
+function renderUserLeave(){
+  const name=currentUser.name;
+  const myLeaves=S.leaves.filter(l=>l.name===name).sort((a,b)=>b.date.localeCompare(a.date));
+  const bal=getMemberBalance(name);
+
+  let h=`<div class="card"><p class="card-title"><span class="icon icon-purple">&#9992;&#65039;</span>Apply for leave</p>
+    <label>Request type</label>
+    <select id="leave-request-type" onchange="toggleLeaveFields()">
+      <option value="leave">Leave / Half day</option>
+      <option value="festival">Festival leave (${bal.festival} slot${bal.festival!==1?'s':''} remaining)</option>
+      <option value="compoff">Use comp off</option>
+      <option value="late-login">Late login regularisation</option>
+    </select>
+    <div id="leave-fields">
+      <label>Date</label><input type="date" id="leave-date" min="${TODAY}" value="${TODAY}">
+      <label>Type</label>
+      <select id="leave-type"><option value="full">Full day</option><option value="half">Half day</option></select>
+    </div>
+    <div id="festival-fields" style="display:none">
+      <label>Date</label><input type="date" id="festival-date" min="${TODAY}" value="${TODAY}">
+      <label>Festival name</label><input type="text" id="festival-name" placeholder="e.g. Diwali, Eid">
+      <div style="background:#fef9e7;border-radius:8px;padding:8px;font-size:11px;color:#b7770d;margin-top:6px">&#127881; Festival leave does not deduct from your leave balance. You have ${bal.festival} slot(s) remaining.</div>
+    </div>
+    <div id="compoff-fields" style="display:none">
+      <label>Date</label><input type="date" id="compoff-date" min="${TODAY}" value="${TODAY}">
+      <div style="background:#e8f8f5;border-radius:8px;padding:8px;font-size:11px;color:#0e6655;margin-top:6px">&#127881; You have ${bal.comp} comp off(s) available. Comp offs are used before regular leave balance.</div>
+    </div>
+    <div id="late-login-fields" style="display:none">
+      <label>Date</label><input type="date" id="late-login-date" max="${TODAY}" value="${TODAY}">
+      <label>Actual login time</label><input type="time" id="late-login-time">
+      <div style="background:#fef3e2;border-radius:8px;padding:8px;font-size:11px;color:#b45309;margin-top:6px">&#9888; If approved, your login will be recorded at this time.</div>
+    </div>
+    <label>Reason</label>
+    <textarea id="leave-reason" placeholder="Brief reason..."></textarea>
+    <button class="submit-btn" style="background:#4a6cf7;margin-top:10px" onclick="submitLeaveRequest()">Submit request</button>
+  </div>`;
+
+  if(myLeaves.length){
+    h+=`<div class="card"><p class="card-title"><span class="icon icon-orange">&#128203;</span>My requests</p>`;
+    myLeaves.slice(0,15).forEach(l=>{
+      const sc={pending:'ls-pending',approved:'ls-approved',rejected:'ls-rejected',cancelled:'ls-cancelled'}[l.status];
+      h+=`<div class="leave-card"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px">
+        <span style="font-size:12px;font-weight:600">${l.date} <span style="font-size:10px;color:#888">(${l.type}${l.type==='late-login'?` @ ${l.loginTime}`:''})</span></span>
+        <span class="leave-status ${sc}">${l.status}</span>
+      </div><div style="font-size:11px;color:#666">${l.reason}</div>
+      ${l.adminNote?`<div style="font-size:10px;color:#888;margin-top:3px">Admin: ${l.adminNote}</div>`:''}
+      </div>`;
+    });
+    h+=`</div>`;
+  }
+  document.getElementById('user-leave').innerHTML=h;
+}
+
+function toggleLeaveFields(){
+  const t=document.getElementById('leave-request-type').value;
+  document.getElementById('leave-fields').style.display=t==='leave'?'':'none';
+  document.getElementById('festival-fields').style.display=t==='festival'?'':'none';
+  document.getElementById('compoff-fields').style.display=t==='compoff'?'':'none';
+  document.getElementById('late-login-fields').style.display=t==='late-login'?'':'none';
+}
+
+async function submitLeaveRequest(){
+  const reqType=document.getElementById('leave-request-type').value;
+  const reason=document.getElementById('leave-reason').value.trim();
+  if(!reason){alert('Please provide a reason.');return;}
+  const name=currentUser.name;
+  let leaf={id:Date.now().toString(),name,reason,status:'pending',adminNote:'',seen:false,submittedAt:new Date().toISOString()};
+
+  if(reqType==='leave'){
+    const date=document.getElementById('leave-date').value;
+    const type=document.getElementById('leave-type').value;
+    if(!date){alert('Please select a date.');return;}
+    const dup=S.leaves.find(l=>l.name===name&&l.date===date&&l.type!=='late-login'&&(l.status==='pending'||l.status==='approved'));
+    if(dup){alert('You already have a request for this date.');return;}
+    leaf={...leaf,date,type};
+  } else if(reqType==='festival'){
+    const date=document.getElementById('festival-date').value;
+    const festName=document.getElementById('festival-name').value.trim();
+    const bal=getMemberBalance(name);
+    if(bal.festival<=0){alert('No festival leave slots remaining.');return;}
+    if(!date||!festName){alert('Please fill in date and festival name.');return;}
+    leaf={...leaf,date,type:'festival',festivalName:festName};
+  } else if(reqType==='compoff'){
+    const date=document.getElementById('compoff-date').value;
+    const bal=getMemberBalance(name);
+    if(bal.comp<=0){alert('No comp offs available.');return;}
+    if(!date){alert('Please select a date.');return;}
+    leaf={...leaf,date,type:'compoff'};
+  } else if(reqType==='late-login'){
+    const date=document.getElementById('late-login-date').value;
+    const loginTime=document.getElementById('late-login-time').value;
+    if(!date||!loginTime){alert('Please fill in date and login time.');return;}
+    const dup=S.leaves.find(l=>l.name===name&&l.date===date&&l.type==='late-login'&&(l.status==='pending'||l.status==='approved'));
+    if(dup){alert('Already have a late login request for this date.');return;}
+    leaf={...leaf,date,type:'late-login',loginTime};
+  }
+
+  S.leaves.push(leaf);
+  await saveLeaves();
+  updateLeaveBadge();
+  renderUserLeave();
+  alert('Request submitted. Awaiting admin approval.');
+}
+
+// ── CALENDAR ──────────────────────────────────────────────────
+function buildCal(yr,mo,name,mode){
+  const firstDow=new Date(yr,mo,1).getDay();
+  const dim=new Date(yr,mo+1,0).getDate();
+  const isCurMo=(yr===NOW.getFullYear()&&mo===NOW.getMonth());
+  let h=`<div class="card"><div class="cal-header">
+    <button class="cal-nav" onclick="calNav('${mode}',-1)">&#8249;</button>
+    <span style="font-size:13px;font-weight:700">${MONTHS[mo]} ${yr}</span>
+    <button class="cal-nav" onclick="calNav('${mode}',1)" ${isCurMo?'disabled':''}>&#8250;</button>
+  </div><div class="cal-grid">
+    ${['Su','Mo','Tu','We','Th','Fr','Sa'].map(d=>`<div class="cal-day-name">${d}</div>`).join('')}`;
+  for(let i=0;i<firstDow;i++)h+=`<div class="cal-cell empty"></div>`;
+  for(let day=1;day<=dim;day++){
+    const ds=`${yr}-${pad2(mo+1)}-${pad2(day)}`;
+    const st=dayStatus(name,ds);
+    const sub=getSub(ds,name);
+    const clickable=(st==='present')&&sub?.submitted;
+    const map={'present':'c-present','login-missed':'c-login-missed','eod-missing':'c-eod-missing','leave':'c-leave','halfday':'c-halfday','festival':'c-festival','compoff':'c-compoff','weekend':'c-weekend','future':'c-future','today-pending':'c-future'};
+    let cls=`cal-cell ${map[st]||'c-future'}${isToday(ds)?' c-today':''}${clickable?' clickable':''}`;
+    const icons={'login-missed':'⚠','eod-missing':'!','leave':'🏖','halfday':'½','festival':'🎉','compoff':'🔄'};
+    h+=`<div class="${cls}" ${clickable?`onclick="viewDailyReport('${name}','${ds}')"`:''}>${day}${icons[st]?`<div style="font-size:7px">${icons[st]}</div>`:''}</div>`;
+  }
+  h+=`</div></div>`;return h;
+}
+
+function buildLegend(){
+  return `<div class="legend">
+    <div class="legend-item"><div class="legend-dot" style="background:#e6f4ea;border:1px solid #86efac"></div>Present</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#fef3e2;border:1px solid #fcd34d"></div>Login missed</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#fce8e6;border:1px solid #fca5a5"></div>EOD missing</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#e8f0fe;border:1px solid #93c5fd"></div>Leave</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#f3e8fd;border:1px solid #c4b5fd"></div>Half day</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#fef9e7;border:1px solid #f7dc6f"></div>Festival</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#e8f8f5;border:1px solid #76d7c4"></div>Comp off</div>
+  </div>`;
+}
+
+function calNav(mode,dir){
+  if(mode==='user'){const d=new Date(userCalState.year,userCalState.month+dir,1);userCalState={year:d.getFullYear(),month:d.getMonth()};renderUserCalendar();}
+  else{const d=new Date(adminCalState.year,adminCalState.month+dir,1);adminCalState={year:d.getFullYear(),month:d.getMonth()};renderAttendanceTab();}
+}
+
+// ── ADMIN TABS ────────────────────────────────────────────────
+function switchAdminTab(tab){
+  ['today','leave-admin','attendance','eod-report','timelog','balances','settings','email'].forEach(t=>{
+    document.getElementById('admin-'+t).style.display=t===tab?'':'none';
+    document.getElementById('tab-'+t).classList.toggle('active',t===tab);
+  });
+  if(tab==='today')renderToday();
+  if(tab==='leave-admin')renderAdminLeave();
+  if(tab==='attendance'){adminCalState={year:NOW.getFullYear(),month:NOW.getMonth()};renderAdminAttendance();}
+  if(tab==='eod-report')renderAdminEODReport();
+  if(tab==='balances')renderAdminBalances();
+  if(tab==='timelog')renderTimeLog();
+  if(tab==='settings')renderSettings();
+  if(tab==='email'){document.getElementById('email-date').value=TODAY;document.getElementById('email-output').innerHTML='';}
+}
+
+// ── ADMIN TODAY ───────────────────────────────────────────────
+function renderToday(){
+  updateLeaveBadge();
+  const submitted=S.members.filter(m=>getSub(TODAY,m.name)?.submitted).length;
+  const loggedIn=S.members.filter(m=>getLogin(TODAY,m.name)?.time).length;
+  let h=`<div class="metric-row">
+    <div class="metric"><div class="metric-val">${S.members.length}</div><div class="metric-label">Team</div></div>
+    <div class="metric"><div class="metric-val" style="color:#34a853">${loggedIn}</div><div class="metric-label">Logged in</div></div>
+    <div class="metric"><div class="metric-val" style="color:#4a6cf7">${submitted}</div><div class="metric-label">EOD done</div></div>
+  </div><div class="card"><p class="card-title"><span class="icon icon-green">&#128203;</span>${NOW.toDateString()}</p>`;
+  if(!S.members.length){h+=`<p style="font-size:12px;color:#888">No team members. Go to Settings.</p>`;}
+  else{S.members.forEach(m=>{
+    const sub=getSub(TODAY,m.name);const login=getLogin(TODAY,m.name);
+    const done=!!sub?.submitted;const li=!!login?.time;
+    const leaveRec=getApprovedLeave(m.name,TODAY);
+    h+=`<div class="person-row" style="cursor:${done?'pointer':'default'}" onclick="${done?`viewDailyReport('${m.name}','${TODAY}')`:''}" title="${done?'View report':''}">
+      <div class="person-info"><div class="avatar">${ini(m.name)}</div>
+        <div><div style="font-size:12px;font-weight:600">${m.name}${m.flexi?`<span class="info-chip">Flexi</span>`:''}</div>
+        <div style="font-size:10px;color:#888">${li?`&#128205; ${login.time}`:'No login'} | ${done?`&#9989; ${sub.time}`:'Pending'}</div></div>
+      </div>
+      ${leaveRec?`<span class="leave-status ls-approved">${leaveRec.type}</span>`:done?'<span style="font-size:11px;color:#34a853;font-weight:600">&#9989; Done</span>':'<span style="font-size:11px;color:#fbbc04;font-weight:600">&#9203; Pending</span>'}
+    </div>`;
+  });}
+  h+=`</div>`;
+  document.getElementById('admin-today').innerHTML=h;
+}
+
+// ── ADMIN LEAVE ───────────────────────────────────────────────
+function renderAdminLeave(){
+  updateLeaveBadge();
+  const pending=S.leaves.filter(l=>l.status==='pending').sort((a,b)=>a.date.localeCompare(b.date));
+  const decided=S.leaves.filter(l=>l.status!=='pending').sort((a,b)=>b.date.localeCompare(a.date));
+  let h=`<div class="card"><p class="card-title"><span class="icon icon-red">&#9888;&#65039;</span>Pending <span style="background:#ea4335;color:#fff;border-radius:20px;padding:1px 8px;font-size:10px;margin-left:4px">${pending.length}</span></p>`;
+  if(!pending.length){h+=`<p style="font-size:12px;color:#888">No pending requests.</p>`;}
+  else{pending.forEach(l=>{
+    const isLL=l.type==='late-login';const isFest=l.type==='festival';const isComp=l.type==='compoff';
+    const bal=getMemberBalance(l.name);
+    h+=`<div class="leave-card">
+      <div style="display:flex;justify-content:space-between;margin-bottom:6px">
+        <div>
+          <div style="font-size:12px;font-weight:700">${l.name} <span style="background:#f3f4f6;border-radius:10px;padding:1px 7px;font-size:9px;color:#555">${l.type}${isLL?` @ ${l.loginTime}`:''}</span></div>
+          <div style="font-size:11px;color:#888">${l.date}${isFest?` — ${l.festivalName}`:''}</div>
+          <div style="font-size:11px;color:#666;margin-top:2px">${l.reason}</div>
+          ${!isLL&&!isFest?`<div style="font-size:10px;color:#888;margin-top:2px">Balance after approval: <strong>${Math.max(0,bal.leave-(l.type==='half'?0.5:1)).toFixed(1)}</strong> days</div>`:''}
+        </div>
+        <span class="leave-status ls-pending">Pending</span>
+      </div>
+      <textarea id="note-${l.id}" placeholder="Note (optional)" style="min-height:44px;font-size:11px;margin-bottom:6px"></textarea>
+      <div style="display:flex;gap:6px">
+        <button onclick="decideLeave('${l.id}','approved')" style="flex:1;padding:8px;background:#e6f4ea;color:#166534;border:1.5px solid #86efac;border-radius:9px;font-weight:600;cursor:pointer;font-size:12px">&#9989; Approve</button>
+        <button onclick="decideLeave('${l.id}','rejected')" style="flex:1;padding:8px;background:#fce8e6;color:#c62828;border:1.5px solid #fca5a5;border-radius:9px;font-weight:600;cursor:pointer;font-size:12px">&#10060; Reject</button>
+      </div>
+    </div>`;
+  });}
+  h+=`</div>`;
+  if(decided.length){
+    h+=`<div class="card"><p class="card-title"><span class="icon icon-green">&#128203;</span>Decided</p>`;
+    decided.slice(0,30).forEach(l=>{
+      const sc={approved:'ls-approved',rejected:'ls-rejected',cancelled:'ls-cancelled'}[l.status];
+      const canCancel=l.status==='approved';
+      h+=`<div class="person-row">
+        <div><div style="font-size:12px;font-weight:600">${l.name} — ${l.date}</div>
+        <div style="font-size:10px;color:#888">${l.type}${l.festivalName?' ('+l.festivalName+')':''} · ${l.reason}</div>
+        ${l.adminNote?`<div style="font-size:10px;color:#888">Note: ${l.adminNote}</div>`:''}</div>
+        <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px">
+          <span class="leave-status ${sc}">${l.status}</span>
+          ${canCancel?`<button onclick="cancelLeave('${l.id}')" style="font-size:9px;color:#c62828;background:none;border:1px solid #fca5a5;border-radius:5px;padding:1px 6px;cursor:pointer">Cancel</button>`:''}
+        </div>
+      </div>`;
+    });
+    h+=`</div>`;
+  }
+  document.getElementById('admin-leave-admin').innerHTML=h;
+}
+
+async function decideLeave(id,decision){
+  const idx=S.leaves.findIndex(l=>l.id===id);if(idx<0)return;
+  const noteEl=document.getElementById('note-'+id);
+  S.leaves[idx].status=decision;
+  S.leaves[idx].adminNote=noteEl?noteEl.value.trim():'';
+  S.leaves[idx].seen=false;
+  if(decision==='approved'&&S.leaves[idx].type==='late-login'){
+    const l=S.leaves[idx];
+    if(!getLogin(l.date,l.name)?.time) await saveLogin(l.date,l.name,{time:l.loginTime,flexi:false,lateApproved:true});
+  }
+  if(decision==='approved'&&S.leaves[idx].type==='compoff'){
+    // mark oldest available comp off as used
+    const l=S.leaves[idx];
+    const avail=S.compoffs.filter(c=>c.name===l.name&&!c.used&&c.expiryDate>=TODAY).sort((a,b)=>a.expiryDate.localeCompare(b.expiryDate));
+    if(avail.length){const ci=S.compoffs.findIndex(c=>c.id===avail[0].id);if(ci>-1){S.compoffs[ci].used=true;S.compoffs[ci].usedDate=l.date;await saveCompOffs();}}
+  }
+  await saveLeaves();
+  updateLeaveBadge();
+  renderAdminLeave();
+}
+
+async function cancelLeave(id){
+  if(!confirm('Cancel this approved leave? Balance will be restored.'))return;
+  const idx=S.leaves.findIndex(l=>l.id===id);if(idx<0)return;
+  const l=S.leaves[idx];
+  // restore comp off if it was used for this
+  if(l.type==='compoff'){
+    const ci=S.compoffs.findIndex(c=>c.name===l.name&&c.used&&c.usedDate===l.date);
+    if(ci>-1){S.compoffs[ci].used=false;delete S.compoffs[ci].usedDate;await saveCompOffs();}
+  }
+  S.leaves[idx].status='cancelled';
+  S.leaves[idx].seen=false;
+  S.leaves[idx].adminNote='Cancelled by admin.';
+  await saveLeaves();
+  renderAdminLeave();
+}
+
+// ── ADMIN BALANCES ────────────────────────────────────────────
+function exportBalancesCSV(name){
+  const bal=getMemberBalance(name);
+  const comps=S.compoffs.filter(c=>c.name===name).sort((a,b)=>a.expiryDate.localeCompare(b.expiryDate));
+  const leaves=S.leaves.filter(l=>l.name===name&&(l.status==='approved'||l.status==='cancelled')).sort((a,b)=>b.date.localeCompare(a.date));
+
+  const rows=[['LEAVE BALANCE REPORT — '+name],['Generated',new Date().toLocaleDateString('en-IN')],[]];
+  rows.push(['SUMMARY']);
+  rows.push(['Opening Balance',bal.openingLeave+' days']);
+  rows.push(['Leave Used',bal.leaveUsed.toFixed(1)+' days']);
+  rows.push(['Remaining Balance',bal.leave.toFixed(1)+' days']);
+  rows.push(['Comp Offs Available',bal.comp]);
+  rows.push(['Festival Slots Remaining',bal.festival+'/'+bal.festivalSlots]);
+  rows.push([]);
+
+  rows.push(['LEAVE TRANSACTIONS']);
+  rows.push(['Date','Type','Status','Reason','Days Deducted','Admin Note']);
+  leaves.forEach(l=>{
+    const cost=l.type==='festival'||l.status==='cancelled'?0:l.type==='half'?0.5:1;
+    rows.push([l.date,l.type,l.status,l.reason,l.status==='cancelled'?0:cost,l.adminNote||'']);
+  });
+  rows.push([]);
+
+  rows.push(['COMP OFFS']);
+  rows.push(['Date Worked','Expiry Date','Status','Note']);
+  comps.forEach(c=>{
+    rows.push([c.dateWorked,c.expiryDate,c.used?'Used ('+c.usedDate+')':'Available',c.note||'']);
+  });
+
+  downloadCSV(rows,`LeaveBalance_${name.replace(/ /g,'_')}.csv`);
+}
+
+function exportAllBalancesCSV(){
+  const rows=[['TEAM LEAVE BALANCES REPORT'],['Generated',new Date().toLocaleDateString('en-IN')],[]];
+  rows.push(['Name','Role','Opening Balance','Leave Used','Leave Remaining','Comp Offs Available','Festival Slots Remaining','Festival Slots Total']);
+  S.members.forEach(m=>{
+    const bal=getMemberBalance(m.name);
+    rows.push([m.name,m.role,bal.openingLeave,bal.leaveUsed.toFixed(1),bal.leave.toFixed(1),bal.comp,bal.festival,bal.festivalSlots]);
+  });
+  downloadCSV(rows,`Team_Balances_${TODAY}.csv`);
+}
+
+function exportMonthlyBalanceCSV(name){
+  const rows=[['MONTHLY LEAVE BALANCE — '+name],['Generated',new Date().toLocaleDateString('en-IN')],[]];
+  // build month by month for current year
+  const year=NOW.getFullYear();
+  rows.push(['Month','Leave Used','Comp Offs Used','Festival Leave Used','Running Balance']);
+  let runningBal=parseFloat(S.members.find(m=>m.name===name)?.leaveBalance)||0;
+  for(let mo=0;mo<12;mo++){
+    const first=new Date(year,mo,1).toISOString().slice(0,10);
+    const last=new Date(year,mo+1,0).toISOString().slice(0,10);
+    const monthLeaves=S.leaves.filter(l=>l.name===name&&l.status==='approved'&&l.date>=first&&l.date<=last);
+    const leaveUsed=monthLeaves.filter(l=>l.type==='full').length+monthLeaves.filter(l=>l.type==='half').length*0.5;
+    const compUsed=monthLeaves.filter(l=>l.type==='compoff').length;
+    const festUsed=monthLeaves.filter(l=>l.type==='festival').length;
+    if(mo<=NOW.getMonth()||year<NOW.getFullYear()){
+      runningBal=Math.max(0,runningBal-leaveUsed);
+      rows.push([MONTHS[mo]+' '+year,leaveUsed.toFixed(1),compUsed,festUsed,runningBal.toFixed(1)]);
+    }
+  }
+  downloadCSV(rows,`MonthlyBalance_${name.replace(/ /g,'_')}_${year}.csv`);
+}
+
+function renderAdminBalances(){
+  if(!S.members.length){document.getElementById('admin-balances').innerHTML='<div class="card"><p style="font-size:12px;color:#888">No members yet.</p></div>';return;}
+
+  let h=`<div class="card"><div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+    <p class="card-title" style="margin-bottom:0"><span class="icon icon-green">&#128200;</span>Team leave balances</p>
+    <button onclick="exportAllBalancesCSV()" style="padding:7px 12px;background:#166534;color:#fff;border:none;border-radius:8px;font-size:10px;font-weight:600;cursor:pointer">&#11015; Export all</button>
+  </div>`;
+  S.members.forEach(m=>{
+    const bal=getMemberBalance(m.name);
+    h+=`<div class="leave-card">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+        <div class="person-info">
+          <div class="avatar">${ini(m.name)}</div>
+          <div><div style="font-size:12px;font-weight:600">${m.name}</div>${roleBadge(m.role)}</div>
+        </div>
+        <div style="display:flex;gap:5px">
+          <button onclick="exportBalancesCSV('${m.name}')" style="padding:4px 8px;background:#4a6cf7;color:#fff;border:none;border-radius:7px;font-size:9px;font-weight:600;cursor:pointer">&#11015; Detail</button>
+          <button onclick="exportMonthlyBalanceCSV('${m.name}')" style="padding:4px 8px;background:#166534;color:#fff;border:none;border-radius:7px;font-size:9px;font-weight:600;cursor:pointer">&#11015; Monthly</button>
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px">
+        <div style="background:#e6f4ea;border-radius:8px;padding:8px;text-align:center">
+          <div style="font-size:16px;font-weight:700;color:#166534">${bal.leave.toFixed(1)}</div>
+          <div style="font-size:9px;color:#666">Leave days</div>
+        </div>
+        <div style="background:#e8f0fe;border-radius:8px;padding:8px;text-align:center">
+          <div style="font-size:16px;font-weight:700;color:#1a56db">${bal.comp}</div>
+          <div style="font-size:9px;color:#666">Comp offs</div>
+        </div>
+        <div style="background:#fef9e7;border-radius:8px;padding:8px;text-align:center">
+          <div style="font-size:16px;font-weight:700;color:#b7770d">${bal.festival}/${bal.festivalSlots}</div>
+          <div style="font-size:9px;color:#666">Festival</div>
+        </div>
+      </div>
+      <div style="font-size:10px;color:#888;margin-top:6px">Opening: ${bal.openingLeave} · Used: ${bal.leaveUsed.toFixed(1)} · Remaining: ${bal.leave.toFixed(1)}</div>
+    </div>`;
+  });
+  h+=`</div>`;
+
+  // Add comp off section
+  h+=`<div class="card"><p class="card-title"><span class="icon icon-blue">&#127881;</span>Add comp off</p>
+    <label>Team member</label>
+    <select id="comp-person">${S.members.map(m=>`<option value="${m.name}">${m.name}</option>`).join('')}</select>
+    <label>Date worked</label><input type="date" id="comp-date-worked" value="${TODAY}">
+    <label>Expiry date</label><input type="date" id="comp-expiry">
+    <label>Note (optional)</label><input type="text" id="comp-note" placeholder="e.g. Worked Saturday 18 May">
+    <button class="submit-btn" style="background:#4a6cf7;margin-top:10px" onclick="addCompOff()">+ Add comp off</button>
+  </div>`;
+
+  // existing comp offs
+  const activeComps=S.compoffs.filter(c=>!c.used).sort((a,b)=>a.expiryDate.localeCompare(b.expiryDate));
+  if(activeComps.length){
+    h+=`<div class="card"><p class="card-title"><span class="icon icon-purple">&#127881;</span>Active comp offs</p>`;
+    activeComps.forEach((c,i)=>{
+      const daysLeft=Math.ceil((new Date(c.expiryDate)-new Date(TODAY))/(1000*60*60*24));
+      const expClass=daysLeft<=7?'expiry-badge':'expiry-badge expiry-ok';
+      h+=`<div class="comp-row"><div>
+        <div style="font-size:12px;font-weight:600">${c.name}</div>
+        <div style="font-size:10px;color:#888">Worked: ${c.dateWorked} · ${c.note||''}</div>
+      </div>
+      <div style="display:flex;align-items:center;gap:6px">
+        <span class="${expClass}">${c.expiryDate} (${daysLeft}d)</span>
+        <button onclick="removeCompOff('${c.id}')" style="background:none;border:none;cursor:pointer;color:#ea4335;font-size:14px">&#128465;</button>
+      </div></div>`;
+    });
+    h+=`</div>`;
+  }
+  document.getElementById('admin-balances').innerHTML=h;
+}
+
+async function addCompOff(){
+  const name=document.getElementById('comp-person').value;
+  const dateWorked=document.getElementById('comp-date-worked').value;
+  const expiryDate=document.getElementById('comp-expiry').value;
+  const note=document.getElementById('comp-note').value.trim();
+  if(!name||!dateWorked||!expiryDate){alert('Please fill all fields.');return;}
+  if(expiryDate<=dateWorked){alert('Expiry must be after date worked.');return;}
+  const comp={id:Date.now().toString(),name,dateWorked,expiryDate,note,used:false,addedAt:new Date().toISOString()};
+  S.compoffs.push(comp);
+  await saveCompOffs();
+  renderAdminBalances();
+  alert(`Comp off added for ${name}.`);
+}
+
+async function removeCompOff(id){
+  if(!confirm('Remove this comp off?'))return;
+  const idx=S.compoffs.findIndex(c=>c.id===id);
+  if(idx>-1){S.compoffs.splice(idx,1);await saveCompOffs();renderAdminBalances();}
+}
+
+function exportFullAttendanceCSV(name){
+  const bal=getMemberBalance(name);
+  const member=S.members.find(m=>m.name===name);
+  const rows=[['ATTENDANCE REPORT — '+name],['Generated',new Date().toLocaleDateString('en-IN')],['Role',member?.role||''],[]];
+
+  // Balance summary
+  rows.push(['LEAVE BALANCE SUMMARY']);
+  rows.push(['Opening Balance',bal.openingLeave+' days']);
+  rows.push(['Leave Used',bal.leaveUsed.toFixed(1)+' days']);
+  rows.push(['Remaining Balance',bal.leave.toFixed(1)+' days']);
+  rows.push(['Comp Offs Available',bal.comp]);
+  rows.push(['Festival Slots Remaining',bal.festival+'/'+bal.festivalSlots]);
+  rows.push([]);
+
+  // Month selector — export selected month from adminCalState
+  const yr=adminCalState.year,mo=adminCalState.month;
+  const first=new Date(yr,mo,1),last=new Date(yr,mo+1,0);
+  rows.push(['ATTENDANCE — '+MONTHS[mo]+' '+yr]);
+  rows.push(['Date','Day','Login Time','EOD Time','Status','Leave Type','Note']);
+
+  let workedDays=0,loginMissed=0,eodMissing=0,leaveCount=0,halfCount=0,totalDays=0;
+  for(let d=new Date(first);d<=last;d.setDate(d.getDate()+1)){
+    const ds=d.toISOString().slice(0,10);
+    if(ds>TODAY) continue;
+    const login=getLogin(ds,name);
+    const sub=getSub(ds,name);
+    const leaveRec=getApprovedLeave(name,ds);
+    const wknd=isWeekend(ds);
+    const st=dayStatus(name,ds);
+    const stLabels={'present':'Worked','login-missed':'Login Missed','eod-missing':'EOD Not Filled','leave':'On Leave','halfday':'Half Day','festival':'Festival Leave','compoff':'Comp Off','weekend':'Weekend','today-pending':'Pending','future':''};
+    const dayName=new Date(ds).toLocaleDateString('en-IN',{weekday:'long'});
+    if(!wknd){totalDays++;}
+    if(st==='present') workedDays++;
+    else if(st==='login-missed') loginMissed++;
+    else if(st==='eod-missing') eodMissing++;
+    else if(st==='leave'||st==='festival'||st==='compoff') leaveCount++;
+    else if(st==='halfday') halfCount++;
+    rows.push([ds,dayName,login?.time||'',sub?.time||'',stLabels[st]||st,leaveRec?leaveRec.type:'',leaveRec?.reason||'']);
+  }
+  rows.push([]);
+  rows.push(['MONTHLY SUMMARY']);
+  rows.push(['Total working days',totalDays]);
+  rows.push(['Days worked',workedDays]);
+  rows.push(['Login missed',loginMissed]);
+  rows.push(['EOD not filled',eodMissing]);
+  rows.push(['On leave',leaveCount]);
+  rows.push(['Half days',halfCount]);
+
+  downloadCSV(rows,`Attendance_${name.replace(/ /g,'_')}_${MONTHS[mo]}_${yr}.csv`);
+}
+function renderTimeLog(){
+  const el=document.getElementById('admin-timelog');
+  const fromDef=new Date(NOW);fromDef.setDate(NOW.getDate()-6);
+  let h=`<div class="card"><p class="card-title"><span class="icon icon-purple">&#128337;</span>Login & EOD time log</p>
+    <div style="display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap">
+      <div style="flex:1;min-width:120px"><label style="margin-top:0">From</label><input type="date" id="tl-from" value="${fromDef.toISOString().slice(0,10)}" max="${TODAY}"></div>
+      <div style="flex:1;min-width:120px"><label style="margin-top:0">To</label><input type="date" id="tl-to" value="${TODAY}" max="${TODAY}"></div>
+    </div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <button class="submit-btn" style="background:#4a6cf7;margin-top:0" onclick="renderTimeLogTable()">Generate report</button>
+      <button class="submit-btn" style="background:#166534;margin-top:0" onclick="exportTimeLogCSV()">&#11015; Export CSV</button>
+    </div>
+    <div id="tl-table" style="margin-top:12px"></div>
+  </div>`;
+  if(sub.director){
+    h+=`<div class="report-section"><p class="report-section-title" style="color:#c62828">&#128203; Sr. Management</p>
+      <div style="font-size:12px;line-height:1.7;white-space:pre-wrap">${sub.director.notes||'—'}</div>
+    </div>`;
+  }
+  if(sub.bd){
+    h+=`<div class="report-section"><p class="report-section-title" style="color:#0e6655">&#128188; Business Development</p>
+      <div style="font-size:12px;line-height:1.7;white-space:pre-wrap">${sub.bd.notes||'—'}</div>
+    </div>`;
+  }
+  el.innerHTML=h;
+}
+
+async function renderTimeLogTable(){
+  const from=document.getElementById('tl-from').value;
+  const to=document.getElementById('tl-to').value;
+  if(!from||!to){alert('Please select date range.');return;}
+  if(from>to){alert('From date must be before To date.');return;}
+  const rows=[];
+  const d=new Date(from);
+  while(d.toISOString().slice(0,10)<=to){
+    const ds=d.toISOString().slice(0,10);
+    if(!S.logins[ds]){const snap=await db.ref(`logins/${ds}`).once('value');S.logins[ds]=snap.val()||{};}
+    if(!S.submissions[ds]){const snap=await db.ref(`submissions/${ds}`).once('value');S.submissions[ds]=snap.val()||{};}
+    S.members.forEach(m=>{
+      const login=getLogin(ds,m.name);
+      const subData=getSub(ds,m.name);
+      const leaveRec=getApprovedLeave(m.name,ds);
+      const wknd=isWeekend(ds);
+      rows.push({
+        date:ds,name:m.name,role:m.role,
+        loginTime:login?.time||'',
+        eodTime:subData?.time||'',
+        status:leaveRec?leaveRec.type:wknd?'weekend':subData?.submitted?'present':login?.time?'eod-missing':'login-missed',
+        lateApproved:login?.lateApproved||false
+      });
+    });
+    d.setDate(d.getDate()+1);
+  }
+  if(!rows.length){document.getElementById('tl-table').innerHTML='<p style="font-size:12px;color:#888">No data found.</p>';return;}
+  const stColors={'present':'#166534','login-missed':'#b45309','eod-missing':'#c62828','leave':'#1a56db','festival':'#b7770d','compoff':'#0e6655','weekend':'#9ca3af','halfday':'#7c3aed'};
+  const stLabels={'present':'Present','login-missed':'Login missed','eod-missing':'EOD missing','leave':'On leave','festival':'Festival','compoff':'Comp off','weekend':'Weekend','halfday':'Half day'};
+  let h=`<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:11px">
+    <thead><tr style="background:#1a1a2e;color:#fff">
+      <th style="padding:7px 8px;text-align:left">Date</th>
+      <th style="padding:7px 8px;text-align:left">Name</th>
+      <th style="padding:7px 8px;text-align:left">Login</th>
+      <th style="padding:7px 8px;text-align:left">EOD</th>
+      <th style="padding:7px 8px;text-align:left">Status</th>
+    </tr></thead><tbody>`;
+  rows.forEach((r,i)=>{
+    const bg=i%2===0?'#fff':'#f8f9ff';
+    const c=stColors[r.status]||'#888';
+    h+=`<tr style="background:${bg}">
+      <td style="padding:6px 8px;color:#888">${new Date(r.date).toLocaleDateString('en-IN',{day:'numeric',month:'short',weekday:'short'})}</td>
+      <td style="padding:6px 8px;font-weight:500">${r.name}</td>
+      <td style="padding:6px 8px;color:${r.loginTime?'#166534':'#c62828'}">${r.loginTime||'—'}${r.lateApproved?' <span style="font-size:9px;color:#b45309">(late)</span>':''}</td>
+      <td style="padding:6px 8px;color:${r.eodTime?'#166534':'#c62828'}">${r.eodTime||'—'}</td>
+      <td style="padding:6px 8px;font-weight:600;color:${c}">${stLabels[r.status]||r.status}</td>
+    </tr>`;
+  });
+  h+=`</tbody></table></div>`;
+  document.getElementById('tl-table').innerHTML=h;
+}
+
+async function exportTimeLogCSV(){
+  const from=document.getElementById('tl-from')?.value||TODAY;
+  const to=document.getElementById('tl-to')?.value||TODAY;
+  const rows=[['Date','Name','Role','Login Time','EOD Time','Status','Late Login Approved']];
+  const d=new Date(from);
+  while(d.toISOString().slice(0,10)<=to){
+    const ds=d.toISOString().slice(0,10);
+    if(!S.logins[ds]){const snap=await db.ref(`logins/${ds}`).once('value');S.logins[ds]=snap.val()||{};}
+    if(!S.submissions[ds]){const snap=await db.ref(`submissions/${ds}`).once('value');S.submissions[ds]=snap.val()||{};}
+    S.members.forEach(m=>{
+      const login=getLogin(ds,m.name);const sub=getSub(ds,m.name);
+      const leaveRec=getApprovedLeave(m.name,ds);const wknd=isWeekend(ds);
+      const status=leaveRec?leaveRec.type:wknd?'Weekend':sub?.submitted?'Present':login?.time?'EOD Missing':'Login Missed';
+      rows.push([ds,m.name,m.role,login?.time||'',sub?.time||'',status,login?.lateApproved?'Yes':'No']);
+    });
+    d.setDate(d.getDate()+1);
+  }
+  downloadCSV(rows,`TimeLog_${from}_to_${to}.csv`);
+}
+
+// ── ATTENDANCE CSV EXPORT ─────────────────────────────────────
+function exportAttendanceCSV(name){
+  const member=S.members.find(m=>m.name===name);if(!member)return;
+  const bal=getMemberBalance(name);
+  // build 3 months of data
+  const rows=[['Date','Day','Login Time','EOD Time','Status','Leave Type']];
+  const start=new Date(NOW.getFullYear(),NOW.getMonth()-2,1);
+  const end=new Date(NOW);
+  const d=new Date(start);
+  while(d<=end){
+    const ds=d.toISOString().slice(0,10);
+    const login=getLogin(ds,name);const sub=getSub(ds,name);
+    const leaveRec=getApprovedLeave(name,ds);
+    const wknd=isWeekend(ds);
+    const st=dayStatus(name,ds);
+    const stL={'present':'Present','login-missed':'Login Missed','eod-missing':'EOD Missing','leave':'On Leave','halfday':'Half Day','festival':'Festival Leave','compoff':'Comp Off','weekend':'Weekend','future':'Future','today-pending':'Pending'};
+    rows.push([ds,new Date(ds).toLocaleDateString('en-IN',{weekday:'long'}),login?.time||'',sub?.time||'',stL[st]||st,leaveRec?leaveRec.type:'']);
+    d.setDate(d.getDate()+1);
+  }
+  // add summary
+  rows.push([]);
+  rows.push(['LEAVE BALANCE SUMMARY']);
+  rows.push(['Opening Balance',bal.openingLeave]);
+  rows.push(['Leave Used',bal.leaveUsed.toFixed(1)]);
+  rows.push(['Remaining Balance',bal.leave.toFixed(1)]);
+  rows.push(['Comp Offs Available',bal.comp]);
+  rows.push(['Festival Slots Remaining',bal.festival+'/'+bal.festivalSlots]);
+  downloadCSV(rows,`Attendance_${name.replace(/ /g,'_')}.csv`);
+}
+
+function exportEODReportCSV(name){
+  const member=S.members.find(m=>m.name===name);if(!member)return;
+  const rows=[['Date','Role','Login','EOD Time','Project','Audits Coordinated','Re-coordinated','Briefings','Daily Report','Complete Status','Incomplete Status','Audits Assigned','Audits Cleared','In Queries','Backlog','Editor Daily Report']];
+  const start=new Date(NOW.getFullYear(),NOW.getMonth()-2,1);
+  const d=new Date(start);
+  while(d<=NOW){
+    const ds=d.toISOString().slice(0,10);
+    const sub=getSub(ds,name);const login=getLogin(ds,name);
+    if(sub?.submitted){
+      if(sub.scheduler){
+        Object.entries(sub.scheduler).forEach(([proj,p])=>{
+          rows.push([ds,sub.role,login?.time||'',sub.time||'',proj,p.coordinated,p.recoordinated,p.briefings,p.dailyReport,p.completeSent,p.incompleteSent,sub.editor?.assigned||'',sub.editor?.cleared||'',sub.editor?.queries||'',sub.editor?.backlog||'',sub.editor?.dailyReport||'']);
+        });
+      } else if(sub.editor){
+        rows.push([ds,sub.role,login?.time||'',sub.time||'','','' ,'','','','','',sub.editor.assigned,sub.editor.cleared,sub.editor.queries,sub.editor.backlog,sub.editor.dailyReport]);
+      }
+    }
+    d.setDate(d.getDate()+1);
+  }
+  downloadCSV(rows,`EOD_Report_${name.replace(/ /g,'_')}.csv`);
+}
+
+function downloadCSV(rows,filename){
+  const csv=rows.map(r=>r.map(c=>`"${String(c).replace(/"/g,'""')}"`).join(',')).join('\n');
+  const blob=new Blob([csv],{type:'text/csv'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');a.href=url;a.download=filename;a.click();
+  URL.revokeObjectURL(url);
+}
+
+
+function renderAdminAttendance(){
+  if(!S.members.length){document.getElementById('admin-attendance').innerHTML='<div class="card"><p style="font-size:12px;color:#888">No members yet.</p></div>';return;}
+  if(!adminAttPerson)adminAttPerson=S.members[0].name;
+  const yr=adminCalState.year,mo=adminCalState.month;
+  const first=new Date(yr,mo,1),last=new Date(yr,mo+1,0);
+  let wd=0,pres=0,lm=0,eodm=0,lv=0,hd=0;
+  for(let d=new Date(first);d<=last&&d<=NOW;d.setDate(d.getDate()+1)){
+    const ds=d.toISOString().slice(0,10);if(isWeekend(ds))continue;
+    wd++;const st=dayStatus(adminAttPerson,ds);
+    if(st==='present')pres++;else if(st==='login-missed')lm++;else if(st==='eod-missing')eodm++;
+    else if(st==='leave'||st==='festival'||st==='compoff')lv++;else if(st==='halfday')hd++;
+  }
+  let h=`<div class="card"><p class="card-title"><span class="icon icon-purple">&#128197;</span>Attendance</p>
+    <label>Team member</label>
+    <select onchange="adminAttPerson=this.value;renderAdminAttendance()">
+      ${S.members.map(m=>`<option value="${m.name}" ${m.name===adminAttPerson?'selected':''}>${m.name}</option>`).join('')}
+    </select>
+    <button onclick="exportFullAttendanceCSV('${adminAttPerson}')" style="width:100%;padding:10px;background:#166534;color:#fff;border:none;border-radius:10px;font-size:13px;font-weight:600;cursor:pointer;margin-top:10px">&#11015; Export CSV</button>
+    <div class="metric-row" style="margin-top:10px">
+      <div class="metric"><div class="metric-val" style="color:#34a853">${pres}</div><div class="metric-label">Present</div></div>
+      <div class="metric"><div class="metric-val" style="color:#b45309">${lm}</div><div class="metric-label">Login missed</div></div>
+      <div class="metric"><div class="metric-val" style="color:#ea4335">${eodm}</div><div class="metric-label">EOD missing</div></div>
+    </div>
+    <div class="metric-row">
+      <div class="metric"><div class="metric-val" style="color:#1a56db">${lv}</div><div class="metric-label">On leave</div></div>
+      <div class="metric"><div class="metric-val" style="color:#7c3aed">${hd}</div><div class="metric-label">Half day</div></div>
+      <div class="metric"><div class="metric-val">${wd}</div><div class="metric-label">Working days</div></div>
+    </div>
+  </div>`;
+  h+=buildCal(yr,mo,adminAttPerson,'admin');h+=buildLegend();
+  h+=`<div class="card"><p class="card-title" style="font-size:12px">Day detail</p>`;
+  for(let d=new Date(last);d>=first;d.setDate(d.getDate()-1)){
+    const ds=d.toISOString().slice(0,10);
+    const st=dayStatus(adminAttPerson,ds);
+    if(st==='future')continue;if(isWeekend(ds)&&st==='weekend')continue;
+    const login=getLogin(ds,adminAttPerson);const sub=getSub(ds,adminAttPerson);
+    const stL={'present':'&#9989; Present','login-missed':'&#9888; Login missed','eod-missing':'&#10071; EOD not filled','leave':'&#127968; On leave','halfday':'&#127761; Half day','festival':'&#127881; Festival leave','compoff':'&#128260; Comp off','weekend':'&#127774; Weekend','today-pending':'&#9203; Today'};
+    const stC={'present':'#166534','login-missed':'#b45309','eod-missing':'#c62828','leave':'#1a56db','halfday':'#7c3aed','festival':'#b7770d','compoff':'#0e6655','weekend':'#9ca3af','today-pending':'#4a6cf7'};
+    h+=`<div class="person-row" style="cursor:${st==='present'&&sub?.submitted?'pointer':'default'}" onclick="${st==='present'&&sub?.submitted?`viewDailyReport('${adminAttPerson}','${ds}')`:''}" >
+      <div><div style="font-size:12px;font-weight:600">${new Date(ds).toLocaleDateString('en-IN',{weekday:'short',day:'numeric',month:'short'})}</div>
+      <div style="font-size:10px;color:#888">${login?.time?`Login: ${login.time}`:'No login'}${sub?.time?` · EOD: ${sub.time}`:''}</div></div>
+      <span style="font-size:11px;font-weight:600;color:${stC[st]||'#888'}">${stL[st]||st}</span>
+    </div>`;
+  }
+  h+=`</div>`;
+  document.getElementById('admin-attendance').innerHTML=h;
+}
+
+// ── ADMIN EOD REPORT ──────────────────────────────────────────
+function renderAdminEODReport(){
+  if(!S.members.length){document.getElementById('admin-eod-report').innerHTML='<div class="card"><p style="font-size:12px;color:#888">No members yet.</p></div>';return;}
+  if(!eodRepPerson)eodRepPerson=S.members[0].name;
+  let h=`<div class="card"><p class="card-title"><span class="icon icon-blue">&#128202;</span>EOD reports</p>
+    <label>Team member</label>
+    <select onchange="eodRepPerson=this.value;renderEODContent()">
+      ${S.members.map(m=>`<option value="${m.name}" ${m.name===eodRepPerson?'selected':''}>${m.name}</option>`).join('')}
+    </select>
+    <button onclick="exportEODReportCSV(eodRepPerson)" style="width:100%;padding:9px;background:#166534;color:#fff;border:none;border-radius:9px;font-size:11px;font-weight:600;cursor:pointer;margin-top:8px">&#11015; Export EOD Report CSV</button>
+    <div class="tab-row" style="margin-top:10px">
+      <button class="tab ${eodRepTab==='daily'?'active':''}" onclick="eodRepTab='daily';renderEODContent()">Daily</button>
+      <button class="tab ${eodRepTab==='week'?'active':''}" onclick="eodRepTab='week';renderEODContent()">This week</button>
+      <button class="tab ${eodRepTab==='month'?'active':''}" onclick="eodRepTab='month';renderEODContent()">This month</button>
+    </div>
+    <div id="eod-rep-content"></div>
+  </div>`;
+  document.getElementById('admin-eod-report').innerHTML=h;
+  renderEODContent();
+}
+
+function renderEODContent(){
+  const member=S.members.find(m=>m.name===eodRepPerson);if(!member)return;
+  const el=document.getElementById('eod-rep-content');if(!el)return;
+
+  if(eodRepTab==='daily'){
+    // show a date picker and display that day's report
+    const sub=getSub(TODAY,eodRepPerson);
+    const login=getLogin(TODAY,eodRepPerson);
+    let h=`<label style="margin-top:10px">Select date</label>
+      <input type="date" id="daily-rep-date" value="${TODAY}" max="${TODAY}" onchange="renderDailyRepContent()">
+      <div id="daily-rep-detail" style="margin-top:10px"></div>`;
+    el.innerHTML=h;
+    renderDailyRepContent();
+    return;
+  }
+
+  const data=aggregate(eodRepPerson,member.role,eodRepTab);
+  const rate=data.workingDays?Math.round((data.submissionDays/data.workingDays)*100):0;
+  const streak=getStreak(eodRepPerson);
+  let h=`<div class="metric-row">
+    <div class="metric"><div class="metric-val">${rate}%</div><div class="metric-label">EOD rate</div></div>
+    <div class="metric"><div class="metric-val">${data.submissionDays}/${data.workingDays}</div><div class="metric-label">Days filed</div></div>
+    <div class="metric"><div class="metric-val" style="color:#b45309">${streak}</div><div class="metric-label">&#128293; Streak</div></div>
+  </div>`;
+  if((member.role==='scheduler'||member.role==='both')&&data.scheduler){
+    h+=`<div class="week-block"><p class="week-title">&#128197; Scheduler</p>
+      ${sr('Audits coordinated',data.scheduler.coordinated)}${sr('Re-coordinated',data.scheduler.recoordinated)}
+      ${sr('Briefings done',data.scheduler.briefings)}${sr('Daily report submitted',data.scheduler.dailyReport+'/'+data.submissionDays+' days')}
+      ${sr('Complete status sent',data.scheduler.completeSent+'/'+data.submissionDays)}
+    </div>`;
+  }
+  if((member.role==='editor'||member.role==='both')&&data.editor){
+    const cr=data.editor.assigned?Math.round((data.editor.cleared/data.editor.assigned)*100)+'%':'—';
+    h+=`<div class="week-block"><p class="week-title" style="color:#b45309">&#9997;&#65039; Editor</p>
+      ${sr('Audits assigned',data.editor.assigned)}${sr('Audits cleared',data.editor.cleared)}
+      ${sr('Clear rate',cr)}${sr('In queries',data.editor.queries)}
+      ${sr('Backlog',data.editor.backlog)}${sr('Daily reports sent',data.editor.dailyReport+'/'+data.submissionDays)}
+    </div>`;
+  }
+  if(data.submissionDays===0)h+=`<p style="font-size:12px;color:#888;text-align:center;padding:10px 0">No submissions for this period.</p>`;
+  el.innerHTML=h;
+}
+
+function renderDailyRepContent(){
+  const dateEl=document.getElementById('daily-rep-date');
+  if(!dateEl)return;
+  const ds=dateEl.value;
+  const member=S.members.find(m=>m.name===eodRepPerson);if(!member)return;
+  const sub=getSub(ds,eodRepPerson);
+  const login=getLogin(ds,eodRepPerson);
+  const el=document.getElementById('daily-rep-detail');if(!el)return;
+
+  if(!sub?.submitted){
+    const st=dayStatus(eodRepPerson,ds);
+    const msgs={'login-missed':'Login missed — no EOD submitted','eod-missing':'Logged in but EOD not filled','leave':'On approved leave','halfday':'Half day — EOD may not be required','festival':'Festival leave','compoff':'Comp off taken','weekend':'Weekend','future':'Future date','today-pending':'Not yet submitted today'};
+    el.innerHTML=`<div style="background:#f8f9ff;border-radius:10px;padding:14px;text-align:center;font-size:12px;color:#888">${msgs[st]||'No submission found for this date.'}</div>`;
+    return;
+  }
+
+  let h=`<div style="background:#f8f9ff;border-radius:10px;padding:12px;margin-bottom:8px">
+    <div style="font-size:12px;font-weight:600;margin-bottom:4px">${fmt(ds)}</div>
+    <div style="font-size:11px;color:#888">Login: <strong>${login?.time||'Not recorded'}</strong> &nbsp;|&nbsp; EOD: <strong>${sub.time||'—'}</strong> &nbsp;${roleBadge(sub.role)}</div>
+  </div>`;
+  if(sub.scheduler){Object.entries(sub.scheduler).forEach(([proj,d2])=>{
+    h+=`<div class="report-section"><p class="report-section-title">&#128197; ${proj}</p>
+      ${kv('Audits coordinated',d2.coordinated)}${kv('Re-coordinated',d2.recoordinated)}
+      ${kv('Briefings done',d2.briefings)}${kv('Daily report',d2.dailyReport)}
+      ${kv('Complete status',d2.completeSent)}${kv('Incomplete status',d2.incompleteSent)}
+    </div>`;
+  });}
+  if(sub.editor){
+    const cr=sub.editor.assigned?Math.round((sub.editor.cleared/sub.editor.assigned)*100)+'%':'—';
+    h+=`<div class="report-section"><p class="report-section-title" style="color:#b45309">&#9997;&#65039; Editor</p>
+      ${kv('Assigned',sub.editor.assigned)}${kv('Cleared',sub.editor.cleared)}
+      ${kv('Clear rate',cr)}${kv('In queries',sub.editor.queries)}
+      ${kv('Backlog',sub.editor.backlog)}${kv('Daily report',sub.editor.dailyReport)}
+    </div>`;
+  }
+  el.innerHTML=h;
+}
+
+function sr(l,v){return `<div class="stat-row"><span class="stat-label">${l}</span><span class="stat-val">${v}</span></div>`;}
+function kv(label,val){const c=val==='Yes'?'#166534':val==='No'?'#c62828':'#1a1a2e';return `<div class="report-kv"><span class="report-kv-label">${label}</span><span class="report-kv-val" style="color:${c}">${val}</span></div>`;}
+
+function aggregate(name,role,period){
+  const now=new Date();const result={submissionDays:0,workingDays:0};
+  let startDate;
+  if(period==='week'){startDate=new Date(now);startDate.setDate(now.getDate()-6);}
+  else{startDate=new Date(now.getFullYear(),now.getMonth(),1);}
+  if(role==='scheduler'||role==='both')result.scheduler={coordinated:0,recoordinated:0,briefings:0,dailyReport:0,completeSent:0};
+  if(role==='editor'||role==='both')result.editor={assigned:0,cleared:0,queries:0,backlog:0,dailyReport:0};
+  const d=new Date(startDate);
+  while(d<=now){
+    const ds=d.toISOString().slice(0,10);
+    if(isWeekday(ds)){
+      result.workingDays++;
+      const sub=getSub(ds,name);
+      if(sub?.submitted){
+        result.submissionDays++;
+        if(sub.scheduler&&result.scheduler){Object.values(sub.scheduler).forEach(p=>{
+          result.scheduler.coordinated+=p.coordinated||0;result.scheduler.recoordinated+=p.recoordinated||0;
+          result.scheduler.briefings+=p.briefings||0;
+          if(p.dailyReport==='Yes')result.scheduler.dailyReport++;
+          if(p.completeSent==='Yes')result.scheduler.completeSent++;
+        });}
+        if(sub.editor&&result.editor){
+          result.editor.assigned+=sub.editor.assigned||0;result.editor.cleared+=sub.editor.cleared||0;
+          result.editor.queries+=sub.editor.queries||0;result.editor.backlog+=sub.editor.backlog||0;
+          if(sub.editor.dailyReport==='Yes')result.editor.dailyReport++;
+        }
+      }
+    }
+    d.setDate(d.getDate()+1);
+  }
+  return result;
+}
+
+// ── DAILY REPORT MODAL ────────────────────────────────────────
+function viewDailyReport(name,ds){
+  const sub=getSub(ds,name);if(!sub?.submitted)return;
+  const login=getLogin(ds,name);
+  let h=`<button class="close-btn" onclick="closeModal()">&#10005;</button>
+    <p class="modal-title">&#128203; ${name.split(' ')[0]}'s report</p>
+    <p style="font-size:11px;color:#888;margin-bottom:5px">${fmt(ds)} &nbsp;${roleBadge(sub.role)}</p>
+    <p style="font-size:11px;color:#888;margin-bottom:12px">Login: <strong>${login?.time||'Not recorded'}</strong> &nbsp;|&nbsp; EOD: <strong>${sub.time||'—'}</strong></p>`;
+  if(sub.scheduler){Object.entries(sub.scheduler).forEach(([proj,d2])=>{
+    h+=`<div class="report-section"><p class="report-section-title">&#128197; ${proj}</p>
+      ${kv('Audits coordinated',d2.coordinated)}${kv('Re-coordinated',d2.recoordinated)}
+      ${kv('Briefings done',d2.briefings)}${kv('Daily report',d2.dailyReport)}
+      ${kv('Complete status',d2.completeSent)}${kv('Incomplete status',d2.incompleteSent)}
+    </div>`;
+  });}
+  if(sub.editor){
+    const cr=sub.editor.assigned?Math.round((sub.editor.cleared/sub.editor.assigned)*100)+'%':'—';
+    h+=`<div class="report-section"><p class="report-section-title" style="color:#b45309">&#9997;&#65039; Editor</p>
+      ${kv('Assigned',sub.editor.assigned)}${kv('Cleared',sub.editor.cleared)}
+      ${kv('Clear rate',cr)}${kv('In queries',sub.editor.queries)}
+      ${kv('Backlog',sub.editor.backlog)}${kv('Daily report',sub.editor.dailyReport)}
+    </div>`;
+  }
+  if(sub.director){
+    h+=`<div class="report-section"><p class="report-section-title" style="color:#c62828">&#128203; Sr. Management</p>
+      <div style="font-size:12px;color:#1a1a2e;line-height:1.7;white-space:pre-wrap">${sub.director.notes||'—'}</div>
+    </div>`;
+  }
+  if(sub.bd){
+    h+=`<div class="report-section"><p class="report-section-title" style="color:#0e6655">&#128188; Business Development</p>
+      <div style="font-size:12px;color:#1a1a2e;line-height:1.7;white-space:pre-wrap">${sub.bd.notes||'—'}</div>
+    </div>`;
+  }
+  showModal(h);
+}
+
+// ── EOD FORM ──────────────────────────────────────────────────
+function startEOD(){
+  if(!currentUser) return;
+  const el=document.getElementById('eod-content');
+  if(!el) return;
+  renderEOD();
+  showView('eod');
+}
+function renderEOD(){
+  const u=currentUser;const projects=S.projects.length?S.projects:['General'];
+  let h=`<div class="card" style="margin-top:8px">
+    <p class="card-title"><span class="avatar" style="width:30px;height:30px;border-radius:50%;background:#e8f0fe;color:#1a56db;font-weight:700;font-size:11px;display:flex;align-items:center;justify-content:center">${ini(u.name)}</span>${u.name}</p>
+    <p style="font-size:11px;color:#888">${NOW.toDateString()} &nbsp;${roleBadge(u.role)}</p>
+  </div>`;
+  if(u.role==='scheduler'||u.role==='both'){
+    h+=`<div class="card"><p class="card-title"><span class="icon icon-blue">&#128197;</span>Scheduler data</p>`;
+    projects.forEach((proj,pi)=>{
+      h+=`<div class="project-block"><p class="project-block-title">&#128193; ${proj}</p>
+        ${nf('s_coord_'+pi,'Total audits coordinated')}${nf('s_recoord_'+pi,'Total audits re-coordinated')}
+        ${nf('s_brief_'+pi,'Total briefings done')}${yn('s_rep_'+pi,'Daily report submitted?')}
+        ${ynComplete('s_complete_'+pi,'s_incomplete_'+pi)}
+      </div>`;
+    });
+    h+=`</div>`;
+  }
+  if(u.role==='editor'||u.role==='both'){
+    h+=`<div class="card"><p class="card-title"><span class="icon icon-orange">&#9997;&#65039;</span>Editor data</p>
+      ${nf('e_assigned','Total audits assigned today')}${nf('e_cleared','Total audits cleared completely')}
+      ${nf('e_queries','Total audits in queries')}${nf('e_backlog','Total backlog')}
+      ${yn('e_report','Daily report sent?')}
+    </div>`;
+  }
+  if(u.role==='director'){
+    h+=`<div class="card"><p class="card-title"><span class="icon icon-red">&#128203;</span>Sr. Management — Daily Report</p>
+      <label>Daily report <span style="color:#ea4335">*</span></label>
+      <textarea id="d_notes" placeholder="Enter your daily report here — meetings, decisions, follow-ups, updates..." style="min-height:160px"></textarea>
+    </div>`;
+  }
+
+  if(u.role==='bd'){
+    h+=`<div class="card"><p class="card-title"><span class="icon icon-green">&#128188;</span>Business Development — Daily Report</p>
+      <label>Daily report <span style="color:#ea4335">*</span></label>
+      <textarea id="bd_notes" placeholder="Enter your daily report here — leads, proposals, follow-ups, deals, pipeline updates..." style="min-height:160px"></textarea>
+    </div>`;
+  }
+
+  h+=`<div id="eod-err" style="display:none;background:#fce8e6;border:1.5px solid #fca5a5;border-radius:10px;padding:10px;margin-bottom:10px;font-size:12px;color:#c62828;line-height:1.7"></div>`;
+  h+=`<button class="submit-btn" onclick="submitEOD()">&#10003; Submit EOD</button><button class="back-btn" onclick="goUserDash('home')">&#8592; Back</button>`;
+  document.getElementById('eod-content').innerHTML=h;
+  document.querySelectorAll('.yn-btn:not(.complete-yn):not(.incomplete-yn)').forEach(btn=>{
+    btn.onclick=function(){const grp=this.closest('.yn-group');grp.querySelectorAll('.yn-btn').forEach(b=>b.classList.remove('active'));this.classList.add('active');};
+  });
+  (S.projects.length?S.projects:['General']).forEach((_,pi)=>wireComplete(pi));
+}
+
+function ynComplete(cId,iId){
+  return `<label>Complete daily status sent?</label>
+  <div class="yn-group" id="grp-${cId}">
+    <button class="yn-btn yes complete-yn" data-ci="${cId}" data-ii="${iId}">&#10003; Yes</button>
+    <button class="yn-btn no active complete-yn" data-ci="${cId}" data-ii="${iId}">&#10007; No</button>
+  </div>
+  <label>Incomplete daily status sent?</label>
+  <div class="yn-group" id="grp-${iId}">
+    <button class="yn-btn yes active incomplete-yn" data-id="${iId}">&#10003; Yes</button>
+    <button class="yn-btn no incomplete-yn" data-id="${iId}">&#10007; No</button>
+  </div>`;
+}
+function wireComplete(pi){
+  const cId='s_complete_'+pi,iId='s_incomplete_'+pi;
+  const cBtns=document.querySelectorAll(`.complete-yn[data-ci="${cId}"]`);
+  const iBtns=document.querySelectorAll(`.incomplete-yn[data-id="${iId}"]`);
+  if(!cBtns.length||!iBtns.length) return;
+  function apply(y){
+    if(y){
+      iBtns.forEach(b=>{b.classList.add('locked');b.classList.remove('active');});
+      if(iBtns[1]) iBtns[1].classList.add('active');
+    } else {
+      iBtns.forEach(b=>{b.classList.remove('locked','active');});
+      if(iBtns[0]) iBtns[0].classList.add('active');
+    }
+  }
+  apply(false);
+  cBtns.forEach(btn=>{btn.onclick=function(){cBtns.forEach(b=>b.classList.remove('active'));this.classList.add('active');apply(this.classList.contains('yes'));};});
+  iBtns.forEach(btn=>{btn.onclick=function(){if(this.classList.contains('locked'))return;iBtns.forEach(b=>b.classList.remove('active'));this.classList.add('active');};});
+}
+function nf(id,label){return `<label>${label} <span style="color:#ea4335">*</span></label><input type="number" id="${id}" min="0" placeholder="Enter number" onfocus="if(this.value==='0')this.value=''" onblur="if(this.value==='')this.value='0'">`;}
+function yn(id,label){return `<label>${label}</label><div class="yn-group"><button class="yn-btn yes" data-id="${id}">&#10003; Yes</button><button class="yn-btn no active" data-id="${id}">&#10007; No</button></div>`;}
+function getYN(id){const el=document.querySelector(`.yn-btn[data-id="${id}"].active`);return el?(el.classList.contains('yes')?'Yes':'No'):'No';}
+function getYNg(gId){const el=document.querySelector(`#grp-${gId} .yn-btn.active`);return el?(el.classList.contains('yes')?'Yes':'No'):'No';}
+function getNum(id){return parseInt(document.getElementById(id)?.value)||0;}
+
+function validateEOD(){
+  const u=currentUser;const projects=S.projects.length?S.projects:['General'];const errors=[];
+  if(u.role==='scheduler'||u.role==='both'){
+    projects.forEach((proj,pi)=>{
+      const f=id=>document.getElementById(id)?.value?.trim();
+      if(!f('s_coord_'+pi))errors.push(`[${proj}] Audits coordinated required.`);
+      if(!f('s_recoord_'+pi))errors.push(`[${proj}] Audits re-coordinated required.`);
+      if(!f('s_brief_'+pi))errors.push(`[${proj}] Briefings done required.`);
+    });
+  }
+  if(u.role==='editor'||u.role==='both'){
+    const f=id=>document.getElementById(id)?.value?.trim();
+    if(!f('e_assigned'))errors.push('Audits assigned required.');
+    if(!f('e_cleared'))errors.push('Audits cleared required.');
+    if(!f('e_queries'))errors.push('Audits in queries required.');
+    if(!f('e_backlog'))errors.push('Backlog required.');
+  }
+  if(u.role==='director'){
+    const notes=document.getElementById('d_notes')?.value?.trim();
+    if(!notes) errors.push('Notes / Summary is required.');
+  }
+  if(u.role==='bd'){
+    const notes=document.getElementById('bd_notes')?.value?.trim();
+    if(!notes) errors.push('Notes / Summary is required.');
+  }
+  return errors;
+}
+
+async function submitEOD(){
+  if(getSub(TODAY,currentUser.name)?.submitted){alert('Already submitted today!');return;}
+  const errors=validateEOD();
+  const errEl=document.getElementById('eod-err');
+  if(errors.length){errEl.style.display='block';errEl.innerHTML='<strong>&#9888; Please fill all required fields:</strong><br>'+errors.map(e=>`• ${e}`).join('<br>');errEl.scrollIntoView({behavior:'smooth',block:'center'});return;}
+  errEl.style.display='none';
+  const u=currentUser;const projects=S.projects.length?S.projects:['General'];
+  const data={submitted:true,role:u.role,date:TODAY,time:new Date().toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'})};
+  if(u.role==='scheduler'||u.role==='both'){
+    data.scheduler={};
+    projects.forEach((proj,pi)=>{data.scheduler[proj]={coordinated:getNum('s_coord_'+pi),recoordinated:getNum('s_recoord_'+pi),briefings:getNum('s_brief_'+pi),dailyReport:getYN('s_rep_'+pi),completeSent:getYNg('s_complete_'+pi),incompleteSent:getYNg('s_incomplete_'+pi)};});
+  }
+  if(u.role==='editor'||u.role==='both'){data.editor={assigned:getNum('e_assigned'),cleared:getNum('e_cleared'),queries:getNum('e_queries'),backlog:getNum('e_backlog'),dailyReport:getYN('e_report')};}
+  if(u.role==='director'){
+    data.director={
+      notes:document.getElementById('d_notes')?.value?.trim()||''
+    };
+  }
+  if(u.role==='bd'){
+    data.bd={
+      notes:document.getElementById('bd_notes')?.value?.trim()||''
+    };
+  }
+  await saveSubmission(TODAY,u.name,data);
+  showView('success');
+}
+
+// ── SETTINGS ──────────────────────────────────────────────────
+function renderSettings(){
+  let h=`<div class="card"><p class="card-title"><span class="icon icon-blue">&#128101;</span>Team members</p><div id="members-list">`;
+  if(!S.members.length){h+=`<p style="font-size:12px;color:#888">No members yet.</p>`;}
+  else{S.members.forEach((m,i)=>{
+    h+=`<div class="member-card"><div class="member-card-header">
+      <div class="person-info"><div class="avatar">${ini(m.name)}</div>
+        <div><div style="font-size:12px;font-weight:600">${m.name}${m.flexi?`<span class="info-chip">Flexi</span>`:''}</div>${roleBadge(m.role)}</div>
+      </div>
+      <div style="display:flex;gap:5px"><button class="edit-btn" onclick="showAddMember(${i})">&#9998; Edit</button><button class="del-btn" onclick="removeMember(${i})">&#128465;</button></div>
+    </div>
+    <div style="font-size:10px;color:#888">&#128100; ${m.username||'—'} &nbsp;&#128200; ${m.leaveBalance||0} days &nbsp;&#127881; ${m.festivalSlots||2} fest slots</div>
+    </div>`;
+  });}
+  h+=`</div><button class="submit-btn" style="margin-top:10px;background:#4a6cf7" onclick="showAddMember()">+ Add member</button></div>`;
+  h+=`<div class="card"><p class="card-title"><span class="icon icon-green">&#128193;</span>Projects</p>
+    <div>${S.projects.length?S.projects.map((p,i)=>`<div class="person-row"><span style="font-size:12px">&#128193; ${p}</span><button class="del-btn" onclick="removeProject(${i})">&#128465;</button></div>`).join(''):'<p style="font-size:12px;color:#888">No projects yet.</p>'}</div>
+    <div style="display:flex;gap:8px;margin-top:10px"><input id="new-project" placeholder="Project name" style="flex:1"><button class="submit-btn" style="width:auto;padding:9px 14px" onclick="addProject()">+ Add</button></div>
+  </div>`;
+  h+=`<div class="card"><p class="card-title"><span class="icon icon-orange">&#128231;</span>Email recipients</p>
+    <div>${S.emails.length?S.emails.map((e,i)=>`<div class="person-row"><span style="font-size:12px">&#128231; ${e}</span><button class="del-btn" onclick="removeEmail(${i})">&#128465;</button></div>`).join(''):'<p style="font-size:12px;color:#888">No recipients.</p>'}</div>
+    <div style="display:flex;gap:8px;margin-top:10px"><input id="new-email" placeholder="email@example.com" type="email" style="flex:1"><button class="submit-btn" style="width:auto;padding:9px 14px" onclick="addEmail()">+ Add</button></div>
+  </div>`;
+  document.getElementById('admin-settings').innerHTML=h;
+}
+
+function showAddMember(editIdx){
+  const isEdit=editIdx!==undefined;
+  const m=isEdit?S.members[editIdx]:{name:'',username:'',password:'',role:'scheduler',flexi:false,leaveBalance:0,festivalSlots:2};
+  showModal(`<button class="close-btn" onclick="closeModal()">&#10005;</button>
+    <p class="modal-title">${isEdit?'&#9998; Edit':'&#128101; Add'} member</p>
+    <label>Full name</label><input type="text" id="m-name" value="${m.name}" placeholder="e.g. Sarah Ahmed">
+    <label>Role</label>
+    <select id="m-role">
+      <option value="scheduler" ${m.role==='scheduler'?'selected':''}>Scheduler</option>
+      <option value="editor" ${m.role==='editor'?'selected':''}>Editor</option>
+      <option value="both" ${m.role==='both'?'selected':''}>Scheduler + Editor</option>
+      <option value="director" ${m.role==='director'?'selected':''}>Sr. Management</option>
+      <option value="bd" ${m.role==='bd'?'selected':''}>Business Development</option>
+    </select>
+    <label>Username</label><input type="text" id="m-username" value="${m.username||''}" placeholder="e.g. sarah.ahmed" autocomplete="off">
+    <label>Password</label>
+    <div class="pw-wrap"><input type="password" id="m-password" value="${m.password||''}" placeholder="Set a password" autocomplete="off">
+    <button class="pw-toggle" onclick="togglePw('m-password')">&#128065;</button></div>
+    <label>Opening leave balance (days)</label>
+    <input type="number" id="m-leave" value="${m.leaveBalance||0}" min="0" step="0.5">
+    <label>Festival leave slots (usually 2)</label>
+    <input type="number" id="m-festival" value="${m.festivalSlots||2}" min="0" max="10">
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 0;margin-top:8px;border-top:1px solid #f0f0f0">
+      <div><div style="font-weight:600;font-size:12px">Flexi login</div><div style="font-size:10px;color:#888">Login captured but never marked as missed${(m.role==='director'||m.role==='bd')?' (auto-enabled for this role)':''}</div></div>
+      <div class="tog-sw ${(m.flexi||(m.role==='director'||m.role==='bd'))?'on':''}" id="flexi-tog" onclick="this.classList.toggle('on')"><div class="tog-knob"></div></div>
+    </div>
+    <button class="submit-btn" style="margin-top:8px" onclick="saveMember(${isEdit?editIdx:'undefined'})">${isEdit?'Save changes':'Add member'}</button>`);
+}
+
+async function saveMember(editIdx){
+  const name=document.getElementById('m-name').value.trim();
+  const role=document.getElementById('m-role').value;
+  const username=document.getElementById('m-username').value.trim();
+  const password=document.getElementById('m-password').value;
+  const flexi=document.getElementById('flexi-tog').classList.contains('on');
+  const autoFlexi=(role==='director'||role==='bd')?true:flexi;
+  const leaveBalance=parseFloat(document.getElementById('m-leave').value)||0;
+  const festivalSlots=parseInt(document.getElementById('m-festival').value)||2;
+  if(!name||!username||!password){alert('Name, username and password are required.');return;}
+  if(editIdx===undefined||editIdx==='undefined'){
+    if(S.members.find(m=>m.name===name)){alert('Name exists');return;}
+    if(S.members.find(m=>m.username===username)){alert('Username taken');return;}
+    S.members.push({name,role,username,password,flexi:autoFlexi,leaveBalance,festivalSlots});
+  } else {
+    const idx=parseInt(editIdx);
+    if(S.members.find((m,i)=>m.username===username&&i!==idx)){alert('Username taken');return;}
+    S.members[idx]={name,role,username,password,flexi:autoFlexi,leaveBalance,festivalSlots};
+  }
+  await saveMembers();closeModal();renderSettings();
+}
+async function removeMember(i){if(!confirm('Remove this member?'))return;S.members.splice(i,1);await saveMembers();renderSettings();}
+async function addProject(){const p=document.getElementById('new-project').value.trim();if(!p)return;S.projects.push(p);document.getElementById('new-project').value='';await saveProjects();renderSettings();}
+async function removeProject(i){S.projects.splice(i,1);await saveProjects();renderSettings();}
+async function addEmail(){const e=document.getElementById('new-email').value.trim();if(!e)return;S.emails.push(e);document.getElementById('new-email').value='';await saveEmails();renderSettings();}
+async function removeEmail(i){S.emails.splice(i,1);await saveEmails();renderSettings();}
+
+// ── EMAIL ─────────────────────────────────────────────────────
+async function generateEmail(){
+  const dateVal=document.getElementById('email-date').value||TODAY;
+  const subsSnap=await db.ref(`submissions/${dateVal}`).once('value');
+  const subs=subsSnap.val()||{};
+  const logSnap=await db.ref(`logins/${dateVal}`).once('value');
+  const logins=logSnap.val()||{};
+  const dateStr=new Date(dateVal).toDateString();
+  let body=`TO: ${S.emails.join(', ')||'[add recipients in settings]'}\nSUBJECT: Team EOD Summary — ${dateStr}\n\nGood morning,\n\nEOD summary for ${dateStr}:\n\n`;
+  let hasAny=false;
+  S.members.forEach(m=>{
+    const k=sk(m.name);const sub=subs[k]||subs[m.name];const login=logins[k]||logins[m.name];
+    const leaveRec=getApprovedLeave(m.name,dateVal);
+    if(leaveRec&&leaveRec.type==='full'){body+=`${m.name.toUpperCase()} — On approved leave\n\n`;return;}
+    if(!sub?.submitted)return;hasAny=true;
+    body+=`━━━━━━━━━━━━━━━━━━━━━━\n${m.name.toUpperCase()} (${m.role})\nLogin: ${login?.time||'Not recorded'} | EOD: ${sub.time||'—'}\n━━━━━━━━━━━━━━━━━━━━━━\n`;
+    if(sub.scheduler){Object.entries(sub.scheduler).forEach(([proj,d2])=>{
+      body+=`Project: ${proj}\n  Coordinated: ${d2.coordinated} | Re-coord: ${d2.recoordinated} | Briefings: ${d2.briefings}\n  Daily report: ${d2.dailyReport} | Complete: ${d2.completeSent} | Incomplete: ${d2.incompleteSent}\n`;
+    });}
+    if(sub.editor)body+=`Assigned: ${sub.editor.assigned} | Cleared: ${sub.editor.cleared} | Queries: ${sub.editor.queries} | Backlog: ${sub.editor.backlog} | Report: ${sub.editor.dailyReport}\n`;
+    body+=`\n`;
+  });
+  if(!hasAny)body+=`No submissions received for ${dateStr}.\n\n`;
+  const pending=S.members.filter(m=>{const k=sk(m.name);return!(subs[k]||subs[m.name])?.submitted&&!getApprovedLeave(m.name,dateVal);}).map(m=>m.name);
+  if(pending.length)body+=`Not submitted: ${pending.join(', ')}\n\n`;
+  body+=`Regards,\nShaw Hotels EOD Tracker`;
+  const enc=encodeURIComponent(body);
+  document.getElementById('email-output').innerHTML=`<div class="summary-box">${body.replace(/&/g,'&amp;').replace(/</g,'&lt;')}</div>
+    <button class="copy-btn" onclick="copyEmail(this,'${enc}')">&#128203; Copy to clipboard</button>`;
+}
+function copyEmail(btn,enc){navigator.clipboard.writeText(decodeURIComponent(enc)).then(()=>{btn.textContent='&#10003; Copied!';setTimeout(()=>btn.textContent='&#128203; Copy to clipboard',2000);});}
+
+updateTopBar('none');
+loadAll();
+</script>
+</body>
+</html>
