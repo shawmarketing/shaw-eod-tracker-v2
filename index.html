@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<title>Shaw EOD Tracker v3.1</title>
+<title>Shaw EOD Tracker v3.2</title>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 <style>
@@ -698,7 +698,11 @@ function renderUserLeave(){
   document.getElementById('user-leave').innerHTML=h;
 }
 
-function toggleLeaveFields(){
+function toggleOtherScope(){
+  const r=document.getElementById('m-role').value;
+  const w=document.getElementById('other-scope-wrap');
+  if(w) w.style.display=r==='other'?'block':'none';
+}
   const t=document.getElementById('leave-request-type').value;
   document.getElementById('leave-fields').style.display=t==='leave'?'':'none';
   document.getElementById('festival-fields').style.display=t==='festival'?'':'none';
@@ -1519,6 +1523,21 @@ function viewDailyReport(name,ds){
       <div style="font-size:12px;color:#1a1a2e;line-height:1.7;white-space:pre-wrap">${sub.bd.notes||'—'}</div>
     </div>`;
   }
+  if(sub.accounts){
+    h+=`<div class="report-section"><p class="report-section-title" style="color:#7c3aed">&#128181; Accounts</p>
+      <div style="font-size:12px;color:#1a1a2e;line-height:1.7;white-space:pre-wrap">${sub.accounts.notes||'—'}</div>
+    </div>`;
+  }
+  if(sub.it){
+    h+=`<div class="report-section"><p class="report-section-title" style="color:#1a56db">&#128187; IT</p>
+      <div style="font-size:12px;color:#1a1a2e;line-height:1.7;white-space:pre-wrap">${sub.it.notes||'—'}</div>
+    </div>`;
+  }
+  if(sub.other){
+    h+=`<div class="report-section"><p class="report-section-title" style="color:#374151">&#128203; ${sub.other.scope||'Other'}</p>
+      <div style="font-size:12px;color:#1a1a2e;line-height:1.7;white-space:pre-wrap">${sub.other.notes||'—'}</div>
+    </div>`;
+  }
   showModal(h);
 }
 
@@ -1638,6 +1657,15 @@ function validateEOD(){
     const notes=document.getElementById('bd_notes')?.value?.trim();
     if(!notes) errors.push('Notes / Summary is required.');
   }
+  if(u.role==='accounts'){
+    if(!document.getElementById('acc_notes')?.value?.trim()) errors.push('Daily report is required.');
+  }
+  if(u.role==='it'){
+    if(!document.getElementById('it_notes')?.value?.trim()) errors.push('Daily report is required.');
+  }
+  if(u.role==='other'){
+    if(!document.getElementById('other_notes')?.value?.trim()) errors.push('Daily report is required.');
+  }
   return errors;
 }
 
@@ -1663,6 +1691,15 @@ async function submitEOD(){
     data.bd={
       notes:document.getElementById('bd_notes')?.value?.trim()||''
     };
+  }
+  if(u.role==='accounts'){
+    data.accounts={notes:document.getElementById('acc_notes')?.value?.trim()||''};
+  }
+  if(u.role==='it'){
+    data.it={notes:document.getElementById('it_notes')?.value?.trim()||''};
+  }
+  if(u.role==='other'){
+    data.other={notes:document.getElementById('other_notes')?.value?.trim()||'',scope:u.otherScope||''};
   }
   await saveSubmission(TODAY,u.name,data);
   showView('success');
@@ -1729,18 +1766,19 @@ async function saveMember(editIdx){
   const username=document.getElementById('m-username').value.trim();
   const password=document.getElementById('m-password').value;
   const flexi=document.getElementById('flexi-tog').classList.contains('on');
-  const autoFlexi=(role==='director'||role==='bd')?true:flexi;
+  const otherScope=role==='other'?(document.getElementById('m-other-scope')?.value?.trim()||''):'';
+  const autoFlexi=(role==='director'||role==='bd'||role==='accounts'||role==='it'||role==='other')?true:flexi;
   const leaveBalance=parseFloat(document.getElementById('m-leave').value)||0;
   const festivalSlots=parseInt(document.getElementById('m-festival').value)||2;
   if(!name||!username||!password){alert('Name, username and password are required.');return;}
   if(editIdx===undefined||editIdx==='undefined'){
     if(S.members.find(m=>m.name===name)){alert('Name exists');return;}
     if(S.members.find(m=>m.username===username)){alert('Username taken');return;}
-    S.members.push({name,role,username,password,flexi:autoFlexi,leaveBalance,festivalSlots});
+    S.members.push({name,role,username,password,flexi:autoFlexi,leaveBalance,festivalSlots,otherScope});
   } else {
     const idx=parseInt(editIdx);
     if(S.members.find((m,i)=>m.username===username&&i!==idx)){alert('Username taken');return;}
-    S.members[idx]={name,role,username,password,flexi:autoFlexi,leaveBalance,festivalSlots};
+    S.members[idx]={name,role,username,password,flexi:autoFlexi,leaveBalance,festivalSlots,otherScope};
   }
   await saveMembers();closeModal();renderSettings();
 }
