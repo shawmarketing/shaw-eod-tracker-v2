@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<title>Shaw EOD Tracker v3.3</title>
+<title>Shaw EOD Tracker v3.4</title>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 <style>
@@ -263,35 +263,42 @@ let adminCalState={year:NOW.getFullYear(),month:NOW.getMonth()};
 let adminAttPerson='',eodRepPerson='',eodRepTab='daily';
 
 // ── FIREBASE ──────────────────────────────────────────────────
+async function safeRead(path,fallback){
+  try{const s=await db.ref(path).once('value');return s.val()??fallback;}
+  catch(e){console.warn('Firebase read failed:',path,e.message);return fallback;}
+}
 async function loadAll(){
   try{
-    const [membersSnap,projectsSnap,emailsSnap,subsSnap,loginsSnap,leavesSnap,compoffsSnap,txSnap]=await Promise.all([
-      db.ref('members').once('value'),
-      db.ref('projects').once('value'),
-      db.ref('emails').once('value'),
-      db.ref('submissions').once('value'),
-      db.ref('logins').once('value'),
-      db.ref('leaves').once('value'),
-      db.ref('compoffs').once('value'),
-      db.ref('leaveTransactions').once('value')
-    ]);
-    S.members=membersSnap.val()?Object.values(membersSnap.val()):[];
-    S.projects=projectsSnap.val()?Object.values(projectsSnap.val()):[];
-    S.emails=emailsSnap.val()?Object.values(emailsSnap.val()):[];
-    S.submissions=subsSnap.val()||{};
-    S.logins=loginsSnap.val()||{};
-    S.leaves=leavesSnap.val()?Object.values(leavesSnap.val()):[];
-    S.compoffs=compoffsSnap.val()?Object.values(compoffsSnap.val()):[];
-    S.leaveTransactions=txSnap.val()?Object.values(txSnap.val()):[];
-    document.getElementById('loading-screen').style.display='none';
+    // Add a 10-second timeout so we never hang forever
+    const timeout=new Promise((_,rej)=>setTimeout(()=>rej(new Error('Connection timed out. Check your internet or Firebase rules.')),10000));
+    await Promise.race([_loadData(),timeout]);
   }catch(err){
     document.getElementById('loading-screen').innerHTML=`<div style="text-align:center;padding:20px;max-width:300px">
       <div style="font-size:36px;margin-bottom:10px">&#9888;&#65039;</div>
       <p style="font-size:14px;font-weight:600;margin-bottom:6px">Connection failed</p>
       <p style="font-size:11px;opacity:.7;margin-bottom:14px">${err.message}</p>
-      <button onclick="location.reload()" style="background:#34a853;color:#fff;border:none;border-radius:10px;padding:10px 20px;font-size:13px;font-weight:600;cursor:pointer">Try again</button>
+      <button onclick="location.reload()" style="background:#34a853;color:#fff;border:none;border-radius:10px;padding:10px 20px;font-size:13px;font-weight:600;cursor:pointer">&#8635; Try again</button>
     </div>`;
   }
+}
+async function _loadData(){
+  const members  = await safeRead('members',{});
+  const projects = await safeRead('projects',{});
+  const emails   = await safeRead('emails',{});
+  const subs     = await safeRead('submissions',{});
+  const logins   = await safeRead('logins',{});
+  const leaves   = await safeRead('leaves',{});
+  const compoffs = await safeRead('compoffs',{});
+  const txns     = await safeRead('leaveTransactions',{});
+  S.members            = members  ? Object.values(members)  : [];
+  S.projects           = projects ? Object.values(projects) : [];
+  S.emails             = emails   ? Object.values(emails)   : [];
+  S.submissions        = subs     || {};
+  S.logins             = logins   || {};
+  S.leaves             = leaves   ? Object.values(leaves)   : [];
+  S.compoffs           = compoffs ? Object.values(compoffs) : [];
+  S.leaveTransactions  = txns     ? Object.values(txns)     : [];
+  document.getElementById('loading-screen').style.display='none';
 }
 
 function fbSet(p,v){return db.ref(p).set(v);}
