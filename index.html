@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<title>Shaw EOD Tracker v3.2</title>
+<title>Shaw EOD Tracker v3.3</title>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 <style>
@@ -265,16 +265,24 @@ let adminAttPerson='',eodRepPerson='',eodRepTab='daily';
 // ── FIREBASE ──────────────────────────────────────────────────
 async function loadAll(){
   try{
-    const snap=await db.ref('/').once('value');
-    const d=snap.val()||{};
-    S.members=d.members?Object.values(d.members):[];
-    S.projects=d.projects?Object.values(d.projects):[];
-    S.emails=d.emails?Object.values(d.emails):[];
-    S.submissions=d.submissions||{};
-    S.logins=d.logins||{};
-    S.leaves=d.leaves?Object.values(d.leaves):[];
-    S.compoffs=d.compoffs?Object.values(d.compoffs):[];
-    S.leaveTransactions=d.leaveTransactions?Object.values(d.leaveTransactions):[];
+    const [membersSnap,projectsSnap,emailsSnap,subsSnap,loginsSnap,leavesSnap,compoffsSnap,txSnap]=await Promise.all([
+      db.ref('members').once('value'),
+      db.ref('projects').once('value'),
+      db.ref('emails').once('value'),
+      db.ref('submissions').once('value'),
+      db.ref('logins').once('value'),
+      db.ref('leaves').once('value'),
+      db.ref('compoffs').once('value'),
+      db.ref('leaveTransactions').once('value')
+    ]);
+    S.members=membersSnap.val()?Object.values(membersSnap.val()):[];
+    S.projects=projectsSnap.val()?Object.values(projectsSnap.val()):[];
+    S.emails=emailsSnap.val()?Object.values(emailsSnap.val()):[];
+    S.submissions=subsSnap.val()||{};
+    S.logins=loginsSnap.val()||{};
+    S.leaves=leavesSnap.val()?Object.values(leavesSnap.val()):[];
+    S.compoffs=compoffsSnap.val()?Object.values(compoffsSnap.val()):[];
+    S.leaveTransactions=txSnap.val()?Object.values(txSnap.val()):[];
     document.getElementById('loading-screen').style.display='none';
   }catch(err){
     document.getElementById('loading-screen').innerHTML=`<div style="text-align:center;padding:20px;max-width:300px">
