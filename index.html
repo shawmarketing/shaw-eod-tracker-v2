@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<title>Shaw EOD Tracker v3.4</title>
+<title>Shaw EOD Tracker v3.5</title>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 <style>
@@ -263,41 +263,40 @@ let adminCalState={year:NOW.getFullYear(),month:NOW.getMonth()};
 let adminAttPerson='',eodRepPerson='',eodRepTab='daily';
 
 // ── FIREBASE ──────────────────────────────────────────────────
-async function safeRead(path,fallback){
-  try{const s=await db.ref(path).once('value');return s.val()??fallback;}
-  catch(e){console.warn('Firebase read failed:',path,e.message);return fallback;}
+function safeRead(path,fallback){
+  return new Promise(resolve=>{
+    const t=setTimeout(()=>{ console.warn('FB timeout:',path); resolve(fallback); },8000);
+    db.ref(path).once('value')
+      .then(s=>{ clearTimeout(t); resolve(s.val()??fallback); })
+      .catch(e=>{ clearTimeout(t); console.warn('FB err:',path,e.message); resolve(fallback); });
+  });
 }
 async function loadAll(){
+  // Kill-switch: no matter what, loading screen hides after 15s
+  const killSwitch=setTimeout(()=>{
+    document.getElementById('loading-screen').style.display='none';
+  },15000);
   try{
-    // Add a 10-second timeout so we never hang forever
-    const timeout=new Promise((_,rej)=>setTimeout(()=>rej(new Error('Connection timed out. Check your internet or Firebase rules.')),10000));
-    await Promise.race([_loadData(),timeout]);
-  }catch(err){
-    document.getElementById('loading-screen').innerHTML=`<div style="text-align:center;padding:20px;max-width:300px">
-      <div style="font-size:36px;margin-bottom:10px">&#9888;&#65039;</div>
-      <p style="font-size:14px;font-weight:600;margin-bottom:6px">Connection failed</p>
-      <p style="font-size:11px;opacity:.7;margin-bottom:14px">${err.message}</p>
-      <button onclick="location.reload()" style="background:#34a853;color:#fff;border:none;border-radius:10px;padding:10px 20px;font-size:13px;font-weight:600;cursor:pointer">&#8635; Try again</button>
-    </div>`;
-  }
-}
-async function _loadData(){
-  const members  = await safeRead('members',{});
-  const projects = await safeRead('projects',{});
-  const emails   = await safeRead('emails',{});
-  const subs     = await safeRead('submissions',{});
-  const logins   = await safeRead('logins',{});
-  const leaves   = await safeRead('leaves',{});
-  const compoffs = await safeRead('compoffs',{});
-  const txns     = await safeRead('leaveTransactions',{});
-  S.members            = members  ? Object.values(members)  : [];
-  S.projects           = projects ? Object.values(projects) : [];
-  S.emails             = emails   ? Object.values(emails)   : [];
-  S.submissions        = subs     || {};
-  S.logins             = logins   || {};
-  S.leaves             = leaves   ? Object.values(leaves)   : [];
-  S.compoffs           = compoffs ? Object.values(compoffs) : [];
-  S.leaveTransactions  = txns     ? Object.values(txns)     : [];
+    const [members,projects,emails,subs,logins,leaves,compoffs,txns]=await Promise.all([
+      safeRead('members',{}),
+      safeRead('projects',{}),
+      safeRead('emails',{}),
+      safeRead('submissions',{}),
+      safeRead('logins',{}),
+      safeRead('leaves',{}),
+      safeRead('compoffs',{}),
+      safeRead('leaveTransactions',{})
+    ]);
+    S.members           = members  && typeof members==='object'  ? Object.values(members)  : [];
+    S.projects          = projects && typeof projects==='object' ? Object.values(projects) : [];
+    S.emails            = emails   && typeof emails==='object'   ? Object.values(emails)   : [];
+    S.submissions       = subs     && typeof subs==='object'     ? subs : {};
+    S.logins            = logins   && typeof logins==='object'   ? logins : {};
+    S.leaves            = leaves   && typeof leaves==='object'   ? Object.values(leaves)   : [];
+    S.compoffs          = compoffs && typeof compoffs==='object' ? Object.values(compoffs) : [];
+    S.leaveTransactions = txns     && typeof txns==='object'     ? Object.values(txns)     : [];
+  }catch(e){ console.error('loadAll error:',e); }
+  clearTimeout(killSwitch);
   document.getElementById('loading-screen').style.display='none';
 }
 
