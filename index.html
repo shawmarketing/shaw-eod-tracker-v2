@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<title>Shaw EOD Tracker v3.5</title>
+<title>Shaw EOD Tracker v3.6</title>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 <style>
@@ -1582,6 +1582,24 @@ function renderEOD(){
       <textarea id="bd_notes" placeholder="Enter your daily report here — leads, proposals, follow-ups, deals, pipeline updates..." style="min-height:160px"></textarea>
     </div>`;
   }
+  if(u.role==='accounts'){
+    h+=`<div class="card"><p class="card-title"><span class="icon icon-green">&#128178;</span>Accounts — Daily Report</p>
+      <label>Daily report <span style="color:#ea4335">*</span></label>
+      <textarea id="gen_notes" placeholder="Enter your daily report here — tasks completed, follow-ups, updates..." style="min-height:160px"></textarea>
+    </div>`;
+  }
+  if(u.role==='it'){
+    h+=`<div class="card"><p class="card-title"><span class="icon icon-blue">&#128187;</span>IT — Daily Report</p>
+      <label>Daily report <span style="color:#ea4335">*</span></label>
+      <textarea id="gen_notes" placeholder="Enter your daily report here — tasks completed, issues resolved, updates..." style="min-height:160px"></textarea>
+    </div>`;
+  }
+  if(u.role==='other'){
+    h+=`<div class="card"><p class="card-title"><span class="icon icon-purple">&#128101;</span>${u.otherScope||'Other'} — Daily Report</p>
+      <label>Daily report <span style="color:#ea4335">*</span></label>
+      <textarea id="gen_notes" placeholder="Enter your daily report here — tasks completed, updates, follow-ups..." style="min-height:160px"></textarea>
+    </div>`;
+  }
 
   h+=`<div id="eod-err" style="display:none;background:#fce8e6;border:1.5px solid #fca5a5;border-radius:10px;padding:10px;margin-bottom:10px;font-size:12px;color:#c62828;line-height:1.7"></div>`;
   h+=`<button class="submit-btn" onclick="submitEOD()">&#10003; Submit EOD</button><button class="back-btn" onclick="goUserDash('home')">&#8592; Back</button>`;
@@ -1653,6 +1671,10 @@ function validateEOD(){
     const notes=document.getElementById('bd_notes')?.value?.trim();
     if(!notes) errors.push('Notes / Summary is required.');
   }
+  if(u.role==='accounts'||u.role==='it'||u.role==='other'){
+    const notes=document.getElementById('gen_notes')?.value?.trim();
+    if(!notes) errors.push('Daily report is required.');
+  }
   return errors;
 }
 
@@ -1677,6 +1699,11 @@ async function submitEOD(){
   if(u.role==='bd'){
     data.bd={
       notes:document.getElementById('bd_notes')?.value?.trim()||''
+    };
+  }
+  if(u.role==='accounts'||u.role==='it'||u.role==='other'){
+    data.general={
+      notes:document.getElementById('gen_notes')?.value?.trim()||''
     };
   }
   await saveSubmission(TODAY,u.name,data);
